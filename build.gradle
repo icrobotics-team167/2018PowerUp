@@ -1,0 +1,40 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'jaci.openrio.gradle.GradleRIO' version '2018.01.11'
+}
+
+deploy {
+    targets {
+        target('roborio', jaci.openrio.gradle.frc.RoboRIO) {
+            team = 167
+        }
+    }
+    artifacts {
+        artifact('roboed', jaci.openrio.gradle.frc.FRCJavaArtifact) {
+            targets << 'roborio'
+        }
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    compile wpilib()
+    compile ctre()
+    compile navx()
+    compile group: 'org.iowacityrobotics.roboed', name: 'RoboED', version: '2018-1.0.0'
+    compile fileTree(dir: 'libs', include: '**/*.jar')
+}
+
+jar {
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest jaci.openrio.gradle.GradleRIOPlugin.javaManifest('org.iowacityrobotics.roboed.robot.Robot')
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.4.1'
+}
