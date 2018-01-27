@@ -16,15 +16,11 @@ public class SubsystemIntake {
     private static final Source<Double> srcCombined = btnFwd.inter(btnRev, Data.inter((a, b) -> a + b));
 
     public static Source<Double> getForwards() {
-        return btnFwd;
+        return srcCombined;
     }
 
     public static Source<Double> getReverse() {
-        return btnRev;
-    }
-
-    public static Source<Double> getCombined() {
-        return srcCombined;
+        return srcCombined.map(Data.mapper(a -> a * -1));
     }
 
 }
