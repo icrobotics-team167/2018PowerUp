@@ -1,0 +1,12 @@
+package org.iowacityrobotics.y2018;
+
+import org.iowacityrobotics.roboed.data.source.Source;
+import org.iowacityrobotics.roboed.util.math.Vector4;
+
+public class SubsystemDrive {
+
+    public static Source<Vector4> get() {
+        // TODO Implement
+    }
+
+}
