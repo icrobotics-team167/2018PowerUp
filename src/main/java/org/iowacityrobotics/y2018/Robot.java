@@ -38,11 +38,11 @@ public class Robot implements IRobotProgram {
         srcRampPiston = SubsystemRamp.getPiston();
         srcRampServo = SubsystemRamp.getServo();
         snkRampServo = SinkSystems.MOTOR.servo(0);
-        snkRampPiston = SinkSystems.OTHER.dblSolenoid(0, 0);
+        snkRampPiston = SinkSystems.OTHER.dblSolenoid(0, 1);
 
         // Lift
         srcLift = SubsystemLift.get();
-        snkLift = SinkSystems.MOTOR.talonSrx(0);
+        snkLift = SinkSystems.MOTOR.talonSrx(2);
 
         // Drive
         srcDrive = SubsystemDrive.get();
@@ -54,8 +54,8 @@ public class Robot implements IRobotProgram {
         // Intake
         srcIntakeFwd = SubsystemIntake.getForwards();
         srcIntakeRev = SubsystemIntake.getReverse();
-        snkIntakeFwd = SinkSystems.MOTOR.talonSrx(0);
-        snkIntakeRev = SinkSystems.MOTOR.talonSrx(0);
+        snkIntakeFwd = SinkSystems.MOTOR.talonSrx(5);
+        snkIntakeRev = SinkSystems.MOTOR.talonSrx(7);
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
