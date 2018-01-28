@@ -1,7 +1,9 @@
 package org.iowacityrobotics.y2018;
 
+import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.iowacityrobotics.roboed.data.sink.Sink;
@@ -21,6 +23,9 @@ import org.iowacityrobotics.y2018.subsystem.SubsystemRamp;
 import java.util.function.Supplier;
 
 public class Robot implements IRobotProgram {
+
+    // Gyroscope
+    public AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
     // Ramp
     public Source<Double> srcRampServo;
