@@ -4,8 +4,10 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.robot.Flow;
@@ -74,16 +76,16 @@ public class Robot implements IRobotProgram {
         // Ramp
         srcRampPiston = SubsystemRamp.getPiston();
         srcRampServo = SubsystemRamp.getServo();
-        snkRampServo = SinkSystems.MOTOR.servo(0);
-        snkRampPiston = SinkSystems.OTHER.dblSolenoid(0, 1);
+        snkRampServo = SinkSystems.MOTOR.servo(5);
+        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
 
         // Lift
         srcLift = SubsystemLift.get();
-        snkLift = SinkSystems.MOTOR.talonSrx(2);
+        snkLift = SinkSystems.MOTOR.talonSrx(5);
 
         // Drive
         srcDrive = SubsystemDrive.get();
-        MotorTuple4 motors = MotorTuple4.ofTalons(1, 4, 3, 6);
+        MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
         motors.getFrontRight().setInverted(true);
         motors.getRearRight().setInverted(true);
         snkDrive = SinkSystems.DRIVE.mecanum(motors);
@@ -91,8 +93,8 @@ public class Robot implements IRobotProgram {
         // Intake
         srcIntakeFwd = SubsystemIntake.getForwards();
         srcIntakeRev = SubsystemIntake.getReverse();
-        snkIntakeFwd = SinkSystems.MOTOR.talonSrx(5);
-        snkIntakeRev = SinkSystems.MOTOR.talonSrx(7);
+        snkIntakeFwd = Data.sink(new Spark(0)::set, 0D);
+        snkIntakeRev = Data.sink(new Spark(1)::set, 0D);
 
         // Auto control
         SendableChooser<StartPos> startPosCtrl = new SendableChooser<>();

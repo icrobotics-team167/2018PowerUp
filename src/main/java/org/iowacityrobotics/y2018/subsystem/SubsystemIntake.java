@@ -20,7 +20,7 @@ public class SubsystemIntake {
     }
 
     public static Source<Double> getReverse() {
-        return srcCombined.map(Data.mapper(a -> a * -1));
+        return srcCombined.map(Data.mapper(a -> a * -1D));
     }
 
 }
