@@ -8,7 +8,7 @@ import org.iowacityrobotics.y2018.Robot;
 
 public class AutoUtil {
 
-    public static void drive(Robot bot, double meters, double speed) {
+    public static void drive(Robot bot, double inches, double speed) {
         Data.pushState();
 
         Vector4 vec = new Vector4(0, speed, 0, 0);

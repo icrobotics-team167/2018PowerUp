@@ -6,7 +6,7 @@ public class RoutineAutoLine implements IAutoRoutine {
 
     @Override
     public void doTheAutoThing(Robot bot, int mult) {
-        AutoUtil.drive(bot, 2.5, 0.5);
+        AutoUtil.drive(bot, 110, 0.5);
     }
 
 }
