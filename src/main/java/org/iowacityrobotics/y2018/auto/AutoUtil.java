@@ -11,7 +11,7 @@ public class AutoUtil {
     public static void drive(Robot bot, double meters, double speed) {
         Data.pushState();
 
-        Vector4 vec = new Vector4(0, 0.6, 0, 0);
+        Vector4 vec = new Vector4(0, speed, 0, 0);
         bot.snkDrive.bind(Data.source(() -> vec));
         Flow.waitUntil((ICondition)null); // TODO implement this later
 
