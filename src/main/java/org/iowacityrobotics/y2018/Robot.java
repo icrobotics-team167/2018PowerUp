@@ -17,10 +17,7 @@ import org.iowacityrobotics.roboed.subsystem.SinkSystems;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
 import org.iowacityrobotics.y2018.auto.*;
-import org.iowacityrobotics.y2018.subsystem.SubsystemDrive;
-import org.iowacityrobotics.y2018.subsystem.SubsystemIntake;
-import org.iowacityrobotics.y2018.subsystem.SubsystemLift;
-import org.iowacityrobotics.y2018.subsystem.SubsystemRamp;
+import org.iowacityrobotics.y2018.subsystem.*;
 
 import java.util.function.Supplier;
 
@@ -48,6 +45,10 @@ public class Robot implements IRobotProgram {
     public Source<Double> srcIntakeRev;
     public Sink<Double> snkIntakeFwd;
     public Sink<Double> snkIntakeRev;
+
+    // Ultrasonic
+    public Source<Double> srcUltrasonic;
+    public Sink<Double> snkUltrasonic;
 
     // Stupid auto routine trees
     private static final Branch<Branch<Supplier<IAutoRoutine>>> autoTreeSwitchScale = new Branch<>(
@@ -96,6 +97,10 @@ public class Robot implements IRobotProgram {
         snkIntakeFwd = Data.sink(new Spark(0)::set, 0D);
         snkIntakeRev = Data.sink(new Spark(1)::set, 0D);
 
+        // Ultrasonic
+        srcUltrasonic = SubsystemUltrasonic.get();
+        snkUltrasonic = SinkSystems.DASH.number("Ultrasonic Data");
+
         // Auto control
         SendableChooser<StartPos> startPosCtrl = new SendableChooser<>();
         for (StartPos pos : StartPos.values()) startPosCtrl.addObject(pos.name(), pos);
@@ -113,6 +118,7 @@ public class Robot implements IRobotProgram {
             snkDrive.bind(srcDrive);
             snkIntakeFwd.bind(srcIntakeFwd);
             snkIntakeRev.bind(srcIntakeRev);
+            snkUltrasonic.bind(srcUltrasonic);
             Flow.waitInfinite();
         });
 
