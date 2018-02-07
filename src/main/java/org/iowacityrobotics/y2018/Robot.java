@@ -47,8 +47,8 @@ public class Robot implements IRobotProgram {
     public Sink<Double> snkIntakeRev;
 
     // Ultrasonic
-    public Source<Double> srcUltrasonic;
-    public Sink<Double> snkUltrasonic;
+    public Source<Integer> srcUltrasonic;
+    public Sink<Integer> snkUltrasonic;
 
     // Stupid auto routine trees
     private static final Branch<Branch<Supplier<IAutoRoutine>>> autoTreeSwitchScale = new Branch<>(

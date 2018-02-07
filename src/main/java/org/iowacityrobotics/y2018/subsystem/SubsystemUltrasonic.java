@@ -5,7 +5,7 @@ import org.iowacityrobotics.roboed.subsystem.SourceSystems;
 
 public class SubsystemUltrasonic {
 
-    public static Source<Double> get() {
+    public static Source<Integer> get() {
         return SourceSystems.SENSOR.analog(0);
     }
 
