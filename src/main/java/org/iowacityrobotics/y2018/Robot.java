@@ -14,6 +14,7 @@ import org.iowacityrobotics.roboed.robot.Flow;
 import org.iowacityrobotics.roboed.robot.IRobotProgram;
 import org.iowacityrobotics.roboed.robot.RobotMode;
 import org.iowacityrobotics.roboed.subsystem.SinkSystems;
+import org.iowacityrobotics.roboed.subsystem.SourceSystems;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
 import org.iowacityrobotics.y2018.auto.*;
@@ -50,6 +51,13 @@ public class Robot implements IRobotProgram {
     public Source<Double> srcUltrasonic;
     public Sink<Double> snkUltrasonic;
 
+    // LIDAR
+    public Source<Double> srcLidar;
+    public Sink<Double> snkLidar;
+
+    // Auto feedback
+    public Sink<Double> snkAutoProfile;
+
     // Stupid auto routine trees
     private static final Branch<Branch<Supplier<IAutoRoutine>>> autoTreeSwitchScale = new Branch<>(
             new Branch<>(
@@ -78,7 +86,7 @@ public class Robot implements IRobotProgram {
         srcRampPiston = SubsystemRamp.getPiston();
         srcRampServo = SubsystemRamp.getServo();
         snkRampServo = SinkSystems.MOTOR.servo(5);
-        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
+//        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
 
         // Lift
         srcLift = SubsystemLift.get();
@@ -101,6 +109,13 @@ public class Robot implements IRobotProgram {
         srcUltrasonic = SubsystemUltrasonic.get();
         snkUltrasonic = SinkSystems.DASH.number("Ultrasonic Data");
 
+        // LIDAR
+        srcLidar = SourceSystems.SENSOR.lidarLite(0, 38072.7486D);
+        snkLidar = SinkSystems.DASH.number("LIDAR output");
+
+        // Auto feedback
+        snkAutoProfile = SinkSystems.DASH.number("Motion profile");
+
         // Auto control
         SendableChooser<StartPos> startPosCtrl = new SendableChooser<>();
         for (StartPos pos : StartPos.values()) startPosCtrl.addObject(pos.name(), pos);
@@ -112,43 +127,48 @@ public class Robot implements IRobotProgram {
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
-            snkRampServo.bind(srcRampServo);
+//            snkRampServo.bind(srcRampServo);
             snkRampPiston.bind(srcRampPiston);
             snkLift.bind(srcLift);
             snkDrive.bind(srcDrive);
             snkIntakeFwd.bind(srcIntakeFwd);
             snkIntakeRev.bind(srcIntakeRev);
             snkUltrasonic.bind(srcUltrasonic);
+            snkLidar.bind(srcLidar);
             Flow.waitInfinite();
         });
 
         RobotMode.AUTO.setOperation(() -> {
-            StartPos startPos = startPosCtrl.getSelected();
-            AutoGoal goal = goalCtrl.getSelected();
-            IAutoRoutine routine;
-            if (startPos == StartPos.CENTER || goal == AutoGoal.CROSS_AUTO_LINE) {
-                routine = new RoutineAutoLine(); // Trivial case; we only do the "break auto line" routine here
-            } else {
-                FieldConfig field = getFieldConfiguration();
-                boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
-                switch (goal) {
-                    case SWITCH:
-                        routine = switchSame ? new RoutineSwitch() : new RoutineAutoLine();
-                        break;
-                    case SCALE:
-                        routine = switchSame ? new RoutineScaleSame() : new RoutineScaleOther();
-                        break;
-                    case SWITCH_THEN_SCALE:
-                        routine = autoTreeSwitchScale.get(switchSame).get(scaleSame).get();
-                        break;
-                    case SCALE_THEN_SWITCH:
-                        routine = autoTreeScaleSwitch.get(scaleSame).get(switchSame).get();
-                        break;
-                    default:
-                        throw new RuntimeException("wtf how did you do that");
-                }
-            }
-            routine.doTheAutoThing(this, startPos.mult);
+            AutoUtil.drive(this, 30D, 0.64D);
+            AutoUtil.turn(this, 180D, 0.8D);
+            AutoUtil.drive(this, 30D, 0.64D);
+            AutoUtil.turn(this, 180D, 0.8D);
+//            StartPos startPos = startPosCtrl.getSelected();
+//            AutoGoal goal = goalCtrl.getSelected();
+//            IAutoRoutine routine;
+//            if (startPos == StartPos.CENTER || goal == AutoGoal.CROSS_AUTO_LINE) {
+//                routine = new RoutineAutoLine(); // Trivial case; we only do the "break auto line" routine here
+//            } else {
+//                FieldConfig field = getFieldConfiguration();
+//                boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
+//                switch (goal) {
+//                    case SWITCH:
+//                        routine = switchSame ? new RoutineSwitch() : new RoutineAutoLine();
+//                        break;
+//                    case SCALE:
+//                        routine = switchSame ? new RoutineScaleSame() : new RoutineScaleOther();
+//                        break;
+//                    case SWITCH_THEN_SCALE:
+//                        routine = autoTreeSwitchScale.get(switchSame).get(scaleSame).get();
+//                        break;
+//                    case SCALE_THEN_SWITCH:
+//                        routine = autoTreeScaleSwitch.get(scaleSame).get(switchSame).get();
+//                        break;
+//                    default:
+//                        throw new RuntimeException("wtf how did you do that");
+//                }
+//            }
+//            routine.doTheAutoThing(this, startPos.mult);
         });
     }
 
