@@ -102,8 +102,8 @@ public class Robot implements IRobotProgram {
         // Intake
         srcIntakeFwd = SubsystemIntake.getForwards();
         srcIntakeRev = SubsystemIntake.getReverse();
-        snkIntakeFwd = Data.sink(new Spark(0)::set, 0D);
-        snkIntakeRev = Data.sink(new Spark(1)::set, 0D);
+        snkIntakeFwd = Data.sink(new Spark(8)::set, 0D);
+        snkIntakeRev = Data.sink(new Spark(9)::set, 0D);
 
         // Ultrasonic
         srcUltrasonic = SubsystemUltrasonic.get();

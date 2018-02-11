@@ -7,10 +7,10 @@ import org.iowacityrobotics.roboed.subsystem.SourceSystems;
 
 public class SubsystemIntake {
 
-    private static final Source<Double> btnFwd = SourceSystems.CONTROL.button(1, 6)
+    private static final Source<Double> btnFwd = SourceSystems.CONTROL.button(2, 6)
             .map(MapperSystems.CONTROL.buttonValue(0D, 0.5));
 
-    private static final Source<Double> btnRev = SourceSystems.CONTROL.button(1, 5)
+    private static final Source<Double> btnRev = SourceSystems.CONTROL.button(2, 5)
             .map(MapperSystems.CONTROL.buttonValue(0D, -0.5));
 
     private static final Source<Double> srcCombined = btnFwd.inter(btnRev, Data.inter((a, b) -> a + b));
