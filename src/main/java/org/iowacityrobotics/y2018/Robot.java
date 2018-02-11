@@ -127,8 +127,8 @@ public class Robot implements IRobotProgram {
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
-//            snkRampServo.bind(srcRampServo);
-            snkRampPiston.bind(srcRampPiston);
+            snkRampServo.bind(srcRampServo);
+//            snkRampPiston.bind(srcRampPiston);
             snkLift.bind(srcLift);
             snkDrive.bind(srcDrive);
             snkIntakeFwd.bind(srcIntakeFwd);
