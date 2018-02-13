@@ -19,9 +19,10 @@ public class SubsystemDrive {
         Source<Boolean> srcReverse = SourceSystems.CONTROL.button(1, 8)
                 .map(MapperSystems.CONTROL.toggle());
         return SourceSystems.CONTROL.dualJoy(1)
+                .map(MapperSystems.CONTROL.deadZone(0.075D))
                 .map(MapperSystems.DRIVE.dualJoyMecanum())
                 .inter(srcSpeed, Data.inter((v, t) -> v.multiply2D(t.factor)))
-                .inter(SourceSystems.CONTROL.axis(1, 3), Data.inter((v, t) -> v.multiply2D(0.75D + 0.25D * t)))
+                //.inter(SourceSystems.CONTROL.axis(1, 3), Data.inter((v, t) -> v.multiply2D(0.75D + 0.25D * t)))
                 .inter(srcReverse, Data.inter((v, r) -> r ? v.multiply2D(-1D) : v));
     }
 
