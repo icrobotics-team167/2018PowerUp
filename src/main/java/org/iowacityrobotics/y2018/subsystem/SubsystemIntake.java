@@ -7,20 +7,22 @@ import org.iowacityrobotics.roboed.subsystem.SourceSystems;
 
 public class SubsystemIntake {
 
-    private static final Source<Double> btnFwd = SourceSystems.CONTROL.button(2, 6)
-            .map(MapperSystems.CONTROL.buttonValue(0D, 0.5));
+    private static final Source<Double> srcOut = SourceSystems.CONTROL.axis(2, 2)
+            .map(MapperSystems.CONTROL.booleanify(0.5D))
+            .map(MapperSystems.CONTROL.buttonValue(0D, -0.33D));
 
-    private static final Source<Double> btnRev = SourceSystems.CONTROL.button(2, 5)
-            .map(MapperSystems.CONTROL.buttonValue(0D, -0.5));
+    private static final Source<Double> srcIn = SourceSystems.CONTROL.axis(2, 3)
+            .map(MapperSystems.CONTROL.booleanify(0.5D))
+            .map(MapperSystems.CONTROL.buttonValue(0D, 0.5D));
 
-    private static final Source<Double> srcCombined = btnFwd.inter(btnRev, Data.inter((a, b) -> a + b));
+    private static final Source<Double> srcCombined = srcOut.inter(srcIn, Data.inter((a, b) -> a + b));
 
     public static Source<Double> getForwards() {
         return srcCombined;
     }
 
     public static Source<Double> getReverse() {
-        return srcCombined.map(Data.mapper(a -> a * -1D));
+        return srcCombined.map(Data.mapper(a -> -a));
     }
 
 }
