@@ -7,6 +7,7 @@ public class RoutineScaleOtherSwitchOther implements IAutoRoutine {
     @Override
     public void doTheAutoThing(Robot bot, int mult) {
         // TODO Implement
+        AutoUtil.drive(bot,210, 1);
     }
 
 }

@@ -1,10 +1,16 @@
 package org.iowacityrobotics.y2018.auto;
 
 import org.iowacityrobotics.roboed.data.Data;
+import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.robot.Flow;
+import org.iowacityrobotics.roboed.robot.RobotMode;
+import org.iowacityrobotics.roboed.subsystem.SinkSystems;
 import org.iowacityrobotics.roboed.util.math.Vector4;
+import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
 import org.iowacityrobotics.y2018.Robot;
+
+import java.util.concurrent.TimeUnit;
 
 public class AutoUtil {
 
@@ -51,4 +57,23 @@ public class AutoUtil {
         Data.popState();
     }
 
+    public static void driveTime(Robot bot, double seconds, double speed) {
+        Data.pushState();
+
+        bot.ahrs.reset();
+        Vector4 vec = new Vector4(0, speed, 0, 0);
+        MotorTuple4 motors = MotorTuple4.ofTalons(1, 4, 3, 6);
+        motors.getFrontRight().setInverted(true);
+        motors.getRearRight().setInverted(true);
+
+        Sink<Vector4> snkDrive = SinkSystems.DRIVE.mecanum(motors);
+        RobotMode.AUTO.setOperation(() -> {
+            Vector4 vec2 = new Vector4(0, 0.45, 0, 0);
+            Source<Vector4> src = Data.source(() -> vec2);
+            snkDrive.bind(src);
+            Flow.waitFor((long)seconds, TimeUnit.SECONDS);
+        });
+
+        Data.popState();
+    }
 }
