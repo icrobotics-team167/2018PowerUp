@@ -11,9 +11,9 @@ public class RoutineScaleOther implements IAutoRoutine {
         AutoUtil.turn(bot, 90 * mult, .75);
         AutoUtil.drive(bot, 75, 1);
         AutoUtil.turn(bot, -90 * mult, .75);
-        AutoUtil.drive(bot, 3, .75);
+        AutoUtil.driveTime(bot, 2, .75);
         AutoUtil.turn(bot,40 * mult, 1);
-        
+
     }
 
 }
