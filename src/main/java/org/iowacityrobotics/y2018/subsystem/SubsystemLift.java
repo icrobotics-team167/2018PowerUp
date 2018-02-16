@@ -11,7 +11,7 @@ public class SubsystemLift {
 
     public static Source<Double> get() {
         return SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.JOY_L_Y)
-                .map(MapperSystems.CONTROL.deadZoneD(0.08D))
+                .map(MapperSystems.CONTROL.deadZoneD(Consts.JOY_DZ))
                 .inter(SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.ZL),
                         Data.inter((v, t) -> t ? (v * 0.5D) : v));
     }
