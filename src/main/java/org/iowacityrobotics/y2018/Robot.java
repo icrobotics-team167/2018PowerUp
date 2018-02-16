@@ -38,7 +38,6 @@ public class Robot implements IRobotProgram {
     public Sink<Double> snkLift;
 
     // Drive
-    public Source<Vector4> srcDrive;
     public Sink<Vector4> snkDrive;
 
     // Intake
@@ -93,7 +92,6 @@ public class Robot implements IRobotProgram {
         snkLift = SinkSystems.MOTOR.talonSrx(5);
 
         // Drive
-        srcDrive = SubsystemDrive.get();
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
         motors.getFrontRight().setInverted(true);
         motors.getRearRight().setInverted(true);
@@ -119,18 +117,26 @@ public class Robot implements IRobotProgram {
         // Auto control
         SendableChooser<StartPos> startPosCtrl = new SendableChooser<>();
         for (StartPos pos : StartPos.values()) startPosCtrl.addObject(pos.name(), pos);
+        startPosCtrl.addDefault(StartPos.LEFT.name(), StartPos.LEFT);
         SmartDashboard.putData("Starting Position", startPosCtrl);
 
         SendableChooser<AutoGoal> goalCtrl = new SendableChooser<>();
         for (AutoGoal goal : AutoGoal.values()) goalCtrl.addObject(goal.name(), goal);
+        goalCtrl.addDefault(AutoGoal.CROSS_AUTO_LINE.name(), AutoGoal.CROSS_AUTO_LINE);
         SmartDashboard.putData("Autonomous Goal", goalCtrl);
+
+        // Control scheme
+        SendableChooser<PrimaryDriveScheme> primaryDriveCtrl = new SendableChooser<>();
+        for (PrimaryDriveScheme scheme : PrimaryDriveScheme.values()) primaryDriveCtrl.addObject(scheme.name(), scheme);
+        primaryDriveCtrl.addDefault(PrimaryDriveScheme.Y_DRIVE.name(), PrimaryDriveScheme.Y_DRIVE);
+        SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
             snkRampServo.bind(srcRampServo);
 //            snkRampPiston.bind(srcRampPiston);
             snkLift.bind(srcLift);
-            snkDrive.bind(srcDrive);
+            snkDrive.bind(primaryDriveCtrl.getSelected().source);
             snkIntakeFwd.bind(srcIntakeFwd);
             snkIntakeRev.bind(srcIntakeRev);
             snkUltrasonic.bind(srcUltrasonic);

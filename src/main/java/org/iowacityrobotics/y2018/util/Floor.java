@@ -1,4 +1,4 @@
-package org.iowacityrobotics.y2018.subsystem;
+package org.iowacityrobotics.y2018.util;
 
 public enum Floor { // TODO Implement elevator presets
     SOMEWHERE(1),
