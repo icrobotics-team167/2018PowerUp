@@ -1,6 +1,7 @@
 package org.iowacityrobotics.y2018.subsystem;
 
 import org.iowacityrobotics.roboed.data.Data;
+import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.subsystem.MapperSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
@@ -20,16 +21,12 @@ public class SubsystemIntake {
             .map(MapperSystems.CONTROL.buttonValue(0D, -1D));
 
     private static final Source<Double> srcCombined = srcOut
-            .inter(srcOutFast, Data.inter((a, b) -> a + b))
-            .inter(srcIn, Data.inter((a, b) -> a + b))
+            .inter(srcOutFast, Funcs.sumD())
+            .inter(srcIn, Funcs.sumD())
             .map(Data.mapper(v -> Maths.clamp(v, -1D, 1D)));
 
-    public static Source<Double> getForwards() {
+    public static Source<Double> get() {
         return srcCombined;
-    }
-
-    public static Source<Double> getReverse() {
-        return srcCombined.map(Data.mapper(a -> -a));
     }
 
 }

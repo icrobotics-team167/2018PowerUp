@@ -4,10 +4,10 @@ import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.SPI;
-import edu.wpi.first.wpilibj.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.iowacityrobotics.roboed.data.Data;
+import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.robot.Flow;
@@ -41,10 +41,8 @@ public class Robot implements IRobotProgram {
     public Sink<Vector4> snkDrive;
 
     // Intake
-    public Source<Double> srcIntakeFwd;
-    public Source<Double> srcIntakeRev;
-    public Sink<Double> snkIntakeFwd;
-    public Sink<Double> snkIntakeRev;
+    public Source<Double> srcIntake;
+    public Sink<Double> snkIntake;
 
     // Ultrasonic
     public Source<Double> srcUltrasonic;
@@ -89,7 +87,9 @@ public class Robot implements IRobotProgram {
 
         // Lift
         srcLift = SubsystemLift.get();
-        snkLift = SinkSystems.MOTOR.talonSrx(5);
+        snkLift = SinkSystems.MOTOR.talonSrx(5).join(
+                SinkSystems.MOTOR.talonSrx(6)
+                        .map(Funcs.invertD()));
 
         // Drive
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
@@ -98,10 +98,10 @@ public class Robot implements IRobotProgram {
         snkDrive = SinkSystems.DRIVE.mecanum(motors);
 
         // Intake
-        srcIntakeFwd = SubsystemIntake.getForwards();
-        srcIntakeRev = SubsystemIntake.getReverse();
-        snkIntakeFwd = Data.sink(new Spark(8)::set, 0D);
-        snkIntakeRev = Data.sink(new Spark(9)::set, 0D);
+        srcIntake = SubsystemIntake.get();
+        snkIntake = SinkSystems.MOTOR.spark(8).join(
+                SinkSystems.MOTOR.spark(9)
+                        .map(Funcs.invertD()));
 
         // Ultrasonic
         srcUltrasonic = SubsystemUltrasonic.get();
@@ -137,8 +137,7 @@ public class Robot implements IRobotProgram {
 //            snkRampPiston.bind(srcRampPiston);
             snkLift.bind(srcLift);
             snkDrive.bind(primaryDriveCtrl.getSelected().source);
-            snkIntakeFwd.bind(srcIntakeFwd);
-            snkIntakeRev.bind(srcIntakeRev);
+            snkIntake.bind(srcIntake);
             snkUltrasonic.bind(srcUltrasonic);
             snkLidar.bind(srcLidar);
             Flow.waitInfinite();
