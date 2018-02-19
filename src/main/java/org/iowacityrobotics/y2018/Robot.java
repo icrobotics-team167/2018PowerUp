@@ -144,10 +144,6 @@ public class Robot implements IRobotProgram {
         });
 
         RobotMode.AUTO.setOperation(() -> {
-            AutoUtil.drive(this, 30D, 0.64D);
-            AutoUtil.turn(this, 180D, 0.8D);
-            AutoUtil.drive(this, 30D, 0.64D);
-            AutoUtil.turn(this, 180D, 0.8D);
 //            StartPos startPos = startPosCtrl.getSelected();
 //            AutoGoal goal = goalCtrl.getSelected();
 //            IAutoRoutine routine;
