@@ -9,7 +9,7 @@ public class RoutineScaleSame implements IAutoRoutine {
         // TODO Implement
         AutoUtil.drive(bot, 324, 0.5);
         AutoUtil.turn(bot, mult * 90, 0.5);
-
+        AutoUtil.skillshot(bot, false);
     }
 
 }

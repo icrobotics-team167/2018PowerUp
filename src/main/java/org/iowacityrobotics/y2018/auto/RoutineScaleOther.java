@@ -13,7 +13,7 @@ public class RoutineScaleOther implements IAutoRoutine {
         AutoUtil.turn(bot, -90 * mult, .75);
         AutoUtil.drive(bot, 3, .75);
         AutoUtil.turn(bot,40 * mult, 1);
-        
+        AutoUtil.skillshot(bot, false);
     }
 
 }

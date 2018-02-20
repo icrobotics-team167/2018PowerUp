@@ -1,5 +1,7 @@
 package org.iowacityrobotics.y2018;
 
+import com.ctre.phoenix.motorcontrol.SensorCollection;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -10,17 +12,19 @@ import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
+import org.iowacityrobotics.roboed.robot.Devices;
 import org.iowacityrobotics.roboed.robot.Flow;
 import org.iowacityrobotics.roboed.robot.IRobotProgram;
 import org.iowacityrobotics.roboed.robot.RobotMode;
 import org.iowacityrobotics.roboed.subsystem.SinkSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
+import org.iowacityrobotics.roboed.util.math.Maths;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
+import org.iowacityrobotics.roboed.vision.CameraType;
+import org.iowacityrobotics.roboed.vision.VisionServer;
 import org.iowacityrobotics.y2018.auto.*;
 import org.iowacityrobotics.y2018.subsystem.*;
-
-import java.util.function.Supplier;
 
 public class Robot implements IRobotProgram {
 
@@ -35,7 +39,10 @@ public class Robot implements IRobotProgram {
 
     // Lift
     public Source<Double> srcLift;
+    public Source<Double> srcLiftEnc;
     public Sink<Double> snkLift;
+    public Sink<Double> snkLiftEnc;
+    public LiftController liftController;
 
     // Drive
     public Sink<Vector4> snkDrive;
@@ -44,38 +51,14 @@ public class Robot implements IRobotProgram {
     public Source<Double> srcIntake;
     public Sink<Double> snkIntake;
 
-    // Ultrasonic
-    public Source<Double> srcUltrasonic;
-    public Sink<Double> snkUltrasonic;
-
     // LIDAR
-    public Source<Double> srcLidar;
-    public Sink<Double> snkLidar;
+    public Source<Double> srcLidarF;
+    public Source<Double> srcLidarS;
+    public Sink<Double> snkLidarF;
+    public Sink<Double> snkLidarS;
 
     // Auto feedback
     public Sink<Double> snkAutoProfile;
-
-    // Stupid auto routine trees
-    private static final Branch<Branch<Supplier<IAutoRoutine>>> autoTreeSwitchScale = new Branch<>(
-            new Branch<>(
-                    RoutineSwitchSameScaleSame::new,
-                    RoutineSwitchSameScaleOther::new
-            ),
-            new Branch<>(
-                    RoutineSwitchOtherScaleSame::new,
-                    RoutineSwitchOtherScaleOther::new
-            )
-    );
-    private static final Branch<Branch<Supplier<IAutoRoutine>>> autoTreeScaleSwitch = new Branch<>(
-            new Branch<>(
-                    RoutineScaleSameSwitchSame::new,
-                    RoutineScaleSameSwitchOther::new
-            ),
-            new Branch<>(
-                    RoutineScaleOtherSwitchSame::new,
-                    RoutineScaleOtherSwitchOther::new
-            )
-    );
 
     @Override
     public void init() {
@@ -86,10 +69,21 @@ public class Robot implements IRobotProgram {
 //        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
 
         // Lift
+        WPI_TalonSRX liftTalon = Devices.talonSrx(5);
+        SensorCollection sensors = liftTalon.getSensorCollection();
+        double encOffset = sensors.getQuadraturePosition();
         srcLift = SubsystemLift.get();
+        srcLiftEnc = Data.source(() -> Maths.clamp(
+                (sensors.getQuadraturePosition() - encOffset) / 27500D,
+                0D, 1D));
+        srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
+                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.19D)
+                        ? 0.5D * v : v));
         snkLift = SinkSystems.MOTOR.talonSrx(5).join(
                 SinkSystems.MOTOR.talonSrx(6)
                         .map(Funcs.invertD()));
+        snkLiftEnc = SinkSystems.DASH.number("Lift Encoder");
+        liftController = new LiftController(srcLiftEnc, snkLift);
 
         // Drive
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
@@ -103,13 +97,11 @@ public class Robot implements IRobotProgram {
                 SinkSystems.MOTOR.spark(9)
                         .map(Funcs.invertD()));
 
-        // Ultrasonic
-        srcUltrasonic = SubsystemUltrasonic.get();
-        snkUltrasonic = SinkSystems.DASH.number("Ultrasonic Data");
-
         // LIDAR
-        srcLidar = SourceSystems.SENSOR.lidarLite(0, 38072.7486D);
-        snkLidar = SinkSystems.DASH.number("LIDAR output");
+        srcLidarF = SourceSystems.SENSOR.lidarLite(0, 38072.7486D);
+        snkLidarF = SinkSystems.DASH.number("Front LIDAR");
+        srcLidarS = SourceSystems.SENSOR.lidarLite(1, 38072.7486D);
+        snkLidarS = SinkSystems.DASH.number("Side LIDAR");
 
         // Auto feedback
         snkAutoProfile = SinkSystems.DASH.number("Motion profile");
@@ -122,7 +114,7 @@ public class Robot implements IRobotProgram {
 
         SendableChooser<AutoGoal> goalCtrl = new SendableChooser<>();
         for (AutoGoal goal : AutoGoal.values()) goalCtrl.addObject(goal.name(), goal);
-        goalCtrl.addDefault(AutoGoal.CROSS_AUTO_LINE.name(), AutoGoal.CROSS_AUTO_LINE);
+        goalCtrl.addDefault(AutoGoal.DRIVE_ACROSS_AUTO_LINE.name(), AutoGoal.DRIVE_ACROSS_AUTO_LINE);
         SmartDashboard.putData("Autonomous Goal", goalCtrl);
 
         // Control scheme
@@ -131,6 +123,9 @@ public class Robot implements IRobotProgram {
         primaryDriveCtrl.addDefault(PrimaryDriveScheme.Y_DRIVE.name(), PrimaryDriveScheme.Y_DRIVE);
         SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
 
+        // Camera
+        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
+
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
             snkRampServo.bind(srcRampServo);
@@ -138,38 +133,89 @@ public class Robot implements IRobotProgram {
             snkLift.bind(srcLift);
             snkDrive.bind(primaryDriveCtrl.getSelected().source);
             snkIntake.bind(srcIntake);
-            snkUltrasonic.bind(srcUltrasonic);
-            snkLidar.bind(srcLidar);
+            snkLidarF.bind(srcLidarF);
+            snkLidarS.bind(srcLidarS);
+            snkLiftEnc.bind(srcLiftEnc);
             Flow.waitInfinite();
         });
 
         RobotMode.AUTO.setOperation(() -> {
-//            StartPos startPos = startPosCtrl.getSelected();
-//            AutoGoal goal = goalCtrl.getSelected();
-//            IAutoRoutine routine;
-//            if (startPos == StartPos.CENTER || goal == AutoGoal.CROSS_AUTO_LINE) {
-//                routine = new RoutineAutoLine(); // Trivial case; we only do the "break auto line" routine here
-//            } else {
-//                FieldConfig field = getFieldConfiguration();
-//                boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
-//                switch (goal) {
-//                    case SWITCH:
-//                        routine = switchSame ? new RoutineSwitch() : new RoutineAutoLine();
-//                        break;
-//                    case SCALE:
-//                        routine = switchSame ? new RoutineScaleSame() : new RoutineScaleOther();
-//                        break;
-//                    case SWITCH_THEN_SCALE:
-//                        routine = autoTreeSwitchScale.get(switchSame).get(scaleSame).get();
-//                        break;
-//                    case SCALE_THEN_SWITCH:
-//                        routine = autoTreeScaleSwitch.get(scaleSame).get(switchSame).get();
-//                        break;
-//                    default:
-//                        throw new RuntimeException("wtf how did you do that");
-//                }
-//            }
-//            routine.doTheAutoThing(this, startPos.mult);
+//            AutoUtil.nowBeginsThePerformance(this);
+            liftController.bind();
+            StartPos startPos = startPosCtrl.getSelected();
+            AutoGoal goal = goalCtrl.getSelected();
+            IAutoRoutine routine = null;
+            FieldConfig field = getFieldConfiguration();
+            boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
+            switch (goal) {
+                case SWITCH_IF_ON_STARTING_POS_ELSE_SCALE_IF_ON_STARTING_POS:
+                    if (switchSame) {
+                        routine = new RoutineSwitch();
+                    } else if (scaleSame) {
+                        routine = new RoutineScaleSame();
+                    } else {
+                        routine = new RoutineAutoLine();
+                    }
+                    break;
+                case SWITCH_IF_ON_STARTING_POS_ELSE_SCALE:
+                    if (switchSame) {
+                        routine = new RoutineSwitch();
+                    } else if (scaleSame){
+                        routine = new RoutineScaleSame();
+                    } else {
+                        routine = new RoutineScaleOther();
+                    }
+                    break;
+                case SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS:
+                    if (scaleSame) {
+                        routine = new RoutineScaleSame();
+                    } else if (switchSame) {
+                        routine = new RoutineSwitch();
+                    } else {
+                        routine = new RoutineAutoLine();
+                    }
+                    break;
+                case SCALE_ALWAYS:
+                    if (scaleSame) {
+                        routine = new RoutineScaleSame();
+                    } else {
+                        routine = new RoutineScaleOther();
+                    }
+                    break;
+                case FROM_CENTER_DO_SWITCH:
+                    if (field.switchSide == StartPos.LEFT) {
+                        routine = new RoutineCenterToLeft();
+                    } else {
+                        routine = new RoutineCenterToRight();
+                    }
+                    break;
+                case DRIVE_ACROSS_AUTO_LINE:
+                    routine = new RoutineAutoLine();
+                    break;
+                case DO_NOTHING_FOR_30_SECONDS:
+                    routine = new RoutineNoop();
+                    break;
+                default:
+                    throw new RuntimeException("wtf how did you do that");
+            }
+            routine.doTheAutoThing(this, startPos.mult);
+        });
+
+        RobotMode.TEST.setOperation(() -> {
+            liftController.bind();
+            double[] s = new double[] {0D};
+            Flow.whileWaiting(() -> {
+                double current = SmartDashboard.getNumber("Lift Setpoint", 0D);
+                if (Math.abs(current - s[0]) >= 1e-4) {
+                    liftController.set(current);
+                    s[0] = current;
+                }
+            });
+            Flow.waitInfinite();
+        });
+
+        RobotMode.DISABLED.setOperation(() -> {
+            liftController.unbind();
         });
     }
 
@@ -208,11 +254,13 @@ public class Robot implements IRobotProgram {
     }
 
     private enum AutoGoal {
-        SWITCH,
-        SCALE,
-        SWITCH_THEN_SCALE,
-        SCALE_THEN_SWITCH,
-        CROSS_AUTO_LINE
+        SWITCH_IF_ON_STARTING_POS_ELSE_SCALE_IF_ON_STARTING_POS,
+        SWITCH_IF_ON_STARTING_POS_ELSE_SCALE,
+        SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS,
+        SCALE_ALWAYS,
+        FROM_CENTER_DO_SWITCH,
+        DRIVE_ACROSS_AUTO_LINE,
+        DO_NOTHING_FOR_30_SECONDS
     }
 
 }
