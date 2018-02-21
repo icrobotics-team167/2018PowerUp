@@ -1,6 +1,6 @@
 package org.iowacityrobotics.y2018;
 
-public class Branch<T> {
+public class  Branch<T> {
 
     private final T tVal, fVal;
 

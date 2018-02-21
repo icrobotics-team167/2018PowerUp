@@ -8,6 +8,7 @@ public class RoutineSwitch implements IAutoRoutine {
     public void doTheAutoThing(Robot bot, int mult) {
         AutoUtil.drive(bot, 168, 0.5);
         AutoUtil.turn(bot, mult * 90, 0.5);
+        AutoUtil.skillshot(bot, false);
         // TODO Implement
     }
 

@@ -1,6 +1,8 @@
-package org.iowacityrobotics.y2018.auto;
+package org.iowacityrobotics.y2018.auto.deprecated;
 
 import org.iowacityrobotics.y2018.Robot;
+import org.iowacityrobotics.y2018.auto.AutoUtil;
+import org.iowacityrobotics.y2018.auto.IAutoRoutine;
 
 public class RoutineScaleOtherSwitchOther implements IAutoRoutine {
 

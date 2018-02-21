@@ -1,6 +1,7 @@
 package org.iowacityrobotics.y2018.subsystem;
 
 import org.iowacityrobotics.roboed.data.Data;
+import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.subsystem.MapperSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
@@ -10,26 +11,25 @@ import org.iowacityrobotics.y2018.util.Controls;
 
 public class SubsystemIntake {
 
-    private static final Source<Double> srcOut = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.B)
+    private static final Source<Double> srcOutSlow = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.B)
             .map(MapperSystems.CONTROL.buttonValue(0D, 0.675D));
 
-    private static final Source<Double> srcOutFast = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.Y)
-            .map(MapperSystems.CONTROL.buttonValue(0D, 0.82D));
+    private static final Source<Double> srcOut = SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.L_AXIS);
 
-    private static final Source<Double> srcIn = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.A)
-            .map(MapperSystems.CONTROL.buttonValue(0D, -1D));
+    private static final Source<Double> srcInSlow = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.A)
+            .map(MapperSystems.CONTROL.buttonValue(0D, -0.675D));
 
-    private static final Source<Double> srcCombined = srcOut
-            .inter(srcOutFast, Data.inter((a, b) -> a + b))
-            .inter(srcIn, Data.inter((a, b) -> a + b))
+    private static final Source<Double> srcIn = SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.R_AXIS)
+            .map(Funcs.invertD());
+
+    private static final Source<Double> srcCombined = srcOutSlow
+            .inter(srcOut, Funcs.sumD())
+            .inter(srcInSlow, Funcs.sumD())
+            .inter(srcIn, Funcs.sumD())
             .map(Data.mapper(v -> Maths.clamp(v, -1D, 1D)));
 
-    public static Source<Double> getForwards() {
+    public static Source<Double> get() {
         return srcCombined;
-    }
-
-    public static Source<Double> getReverse() {
-        return srcCombined.map(Data.mapper(a -> -a));
     }
 
 }

@@ -41,12 +41,14 @@ public enum PrimaryDriveScheme {
                 .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.Y),
                         Data.inter((a, b) -> a.invalid && b ? SpeedLevel.FASTEST : a))
                 .map(StateMachines.stateLatch(SpeedLevel.NIL, SpeedLevel.FASTER));
+        Source<Double> srcSpeedAugment = SourceSystems.CONTROL.axis(Consts.CTRL_PRIMARY, Controls.L_AXIS);
         Source<Boolean> srcReverse = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.START)
                 .map(MapperSystems.CONTROL.toggle());
         return SourceSystems.CONTROL.dualJoy(Consts.CTRL_PRIMARY)
                 .map(MapperSystems.CONTROL.deadZone2V2(Consts.JOY_DZ))
                 .map(MapperSystems.DRIVE.dualJoyMecanum())
                 .inter(srcSpeed, Data.inter((v, t) -> v.multiply2D(t.factor)))
+                .inter(srcSpeedAugment, Data.inter((v, t) -> v.multiply2D(1D - 0.6D * t)))
                 .inter(srcReverse, Data.inter((v, r) -> r ? v.multiply2D(-1D) : v));
     });
     
