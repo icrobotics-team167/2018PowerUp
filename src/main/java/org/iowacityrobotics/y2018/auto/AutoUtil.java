@@ -11,6 +11,27 @@ public class AutoUtil {
     private static final double MIN_MOTOR_MAGN = 0.35D;
     private static final double MIN_TURN_MAGN = 0.50D;
 
+    public static void driveWithTimeout(Robot bot, double inches, double speed, long timeout) {
+        Data.pushState();
+
+        bot.ahrs.reset();
+        Vector4 vec = new Vector4(0, -speed, 0, 0);
+        double initialDist = bot.srcLidarF.get();
+        double deltaDist = Math.abs(inches);
+        double oneMinusDownscale = MIN_MOTOR_MAGN / Math.abs(speed);
+        double deltaFactor = (1D - oneMinusDownscale) / deltaDist;
+        Source<Double> srcDelta = bot.srcLidarF.map(Data.mapper(v -> 1D - Math.abs(v - initialDist) / deltaDist));
+        bot.snkDrive.bind(Data.source(() -> vec)
+                .inter(srcDelta, Data.inter(
+                        (out, delta) -> out.y(-speed * (delta * deltaFactor + oneMinusDownscale)).w(bot.ahrs.getAngle()))));
+        bot.snkAutoProfile.bind(srcDelta);
+        bot.srcLidarF.get();
+        long initialTime = System.currentTimeMillis();
+        Flow.waitUntil(() -> srcDelta.get() <= 0D || System.currentTimeMillis() - initialTime > timeout);
+
+        Data.popState();
+    }
+
     public static void drive(Robot bot, double inches, double speed) {
         Data.pushState();
 
@@ -52,6 +73,17 @@ public class AutoUtil {
         Data.popState();
     }
 
+    public static void strafeBlind(Robot bot, long ms, double speed) {
+        Data.pushState();
+
+        bot.ahrs.reset();
+        Vector4 vec = new Vector4(speed, 0, 0, 0);
+        bot.snkDrive.bind(Data.source(() -> vec));
+        Flow.waitFor(ms);
+
+        Data.popState();
+    }
+
     public static void turn(Robot bot, double degrees, double speed) {
         Data.pushState();
 
@@ -73,52 +105,13 @@ public class AutoUtil {
         Data.popState();
     }
 
-    public static void nowBeginsThePerformance(Robot bot) {
-        Data.pushState();
-        bot.snkIntake.bind(Data.source(() -> -0.675D));
-
-        Data.pushState();
-        Vector4 vec = new Vector4(0, -1, 0, 0);
-        bot.snkDrive.bind(Data.source(() -> vec));
-        Flow.waitFor(300);
-        Data.popState();
-
-        Flow.waitFor(150);
-
-        Data.pushState();
-        vec.y(1);
-        bot.snkDrive.bind(Data.source(() -> vec));
-        Flow.waitFor(300);
-        Data.popState();
-
-        Data.popState();
-    }
-
     public static void skillshot(Robot bot, boolean theQuickness) {
         Data.pushState();
-        double speed = theQuickness ? 0.875D : 0.675D;
+        double speed = theQuickness ? 0.5D : 0.3275D;
         bot.snkIntake.bind(Data.source(() -> speed));
-        Flow.waitFor(750);
+        Flow.waitFor(1500);
         Data.popState();
     }
 
-//    public static void driveTime(Robot bot, double seconds, double speed) {
-//        Data.pushState();
-//
-//        bot.ahrs.reset();
-//        Vector4 vec = new Vector4(0, speed, 0, 0);
-//        MotorTuple4 motors = MotorTuple4.ofTalons(1, 4, 3, 6);
-//        motors.getFrontRight().setInverted(true);
-//        motors.getRearRight().setInverted(true);
-//
-//        Sink<Vector4> snkDrive = SinkSystems.DRIVE.mecanum(motors);
-//        RobotMode.AUTO.setOperation(() -> {
-//            Vector4 vec2 = new Vector4(0, 0.45, 0, 0);
-//            Source<Vector4> src = Data.source(() -> vec2);
-//            snkDrive.bind(src);
-//            Flow.waitFor((long)seconds, TimeUnit.SECONDS);
-//        });
-//
-//        Data.popState();
-//    }
+
 }

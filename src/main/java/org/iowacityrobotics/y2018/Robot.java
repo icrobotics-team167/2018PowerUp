@@ -71,19 +71,25 @@ public class Robot implements IRobotProgram {
         // Lift
         WPI_TalonSRX liftTalon = Devices.talonSrx(5);
         SensorCollection sensors = liftTalon.getSensorCollection();
-        double encOffset = sensors.getQuadraturePosition();
+        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
+        double[] encOffset = new double[] {sensors.getQuadraturePosition()};
         srcLift = SubsystemLift.get();
-        srcLiftEnc = Data.source(() -> Maths.clamp(
-                (sensors.getQuadraturePosition() - encOffset) / 27500D,
-                0D, 1D));
+        srcLiftEnc = liftLimit.map(Data.mapper(lim -> {
+            double pos = sensors.getQuadraturePosition();
+            if (!lim) encOffset[0] = pos;
+            return Maths.clamp((pos - encOffset[0]) / 27500D, 0D, 1D);
+        }));
         srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
-                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.19D)
+                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
                         ? 0.5D * v : v));
         snkLift = SinkSystems.MOTOR.talonSrx(5).join(
                 SinkSystems.MOTOR.talonSrx(6)
                         .map(Funcs.invertD()));
         snkLiftEnc = SinkSystems.DASH.number("Lift Encoder");
+        Sink<Boolean> snkLimit = SinkSystems.DASH.string("Lift At Bottom")
+                .map(Data.mapper((Boolean b) -> b.toString()));
         liftController = new LiftController(srcLiftEnc, snkLift);
+        SmartDashboard.putNumber("Lift Setpoint", 0D);
 
         // Drive
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
@@ -136,6 +142,7 @@ public class Robot implements IRobotProgram {
             snkLidarF.bind(srcLidarF);
             snkLidarS.bind(srcLidarS);
             snkLiftEnc.bind(srcLiftEnc);
+            snkLimit.bind(liftLimit);
             Flow.waitInfinite();
         });
 
@@ -183,11 +190,8 @@ public class Robot implements IRobotProgram {
                     }
                     break;
                 case FROM_CENTER_DO_SWITCH:
-                    if (field.switchSide == StartPos.LEFT) {
-                        routine = new RoutineCenterToLeft();
-                    } else {
-                        routine = new RoutineCenterToRight();
-                    }
+                    startPos = field.switchSide;
+                    routine = new RoutineCenter();
                     break;
                 case DRIVE_ACROSS_AUTO_LINE:
                     routine = new RoutineAutoLine();
@@ -204,6 +208,7 @@ public class Robot implements IRobotProgram {
         RobotMode.TEST.setOperation(() -> {
             liftController.bind();
             double[] s = new double[] {0D};
+            liftController.set(0D);
             Flow.whileWaiting(() -> {
                 double current = SmartDashboard.getNumber("Lift Setpoint", 0D);
                 if (Math.abs(current - s[0]) >= 1e-4) {
