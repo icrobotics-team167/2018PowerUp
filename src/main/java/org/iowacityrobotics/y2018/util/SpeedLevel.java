@@ -7,8 +7,8 @@ public enum SpeedLevel {
     FASTER(2D / 3D),
     FASTEST(1D);
 
-    public double factor;
-    public boolean invalid;
+    public final double factor;
+    public final boolean invalid;
 
     SpeedLevel(double factor) {
         this.factor = factor;

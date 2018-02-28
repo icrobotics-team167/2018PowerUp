@@ -29,7 +29,7 @@ import org.iowacityrobotics.y2018.subsystem.*;
 public class Robot implements IRobotProgram {
 
     // Gyroscope
-    public AHRS ahrs = new AHRS(SPI.Port.kMXP);
+    public final AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
     // Ramp
     public Source<Double> srcRampServo;
@@ -87,7 +87,7 @@ public class Robot implements IRobotProgram {
                         .map(Funcs.invertD()));
         snkLiftEnc = SinkSystems.DASH.number("Lift Encoder");
         Sink<Boolean> snkLimit = SinkSystems.DASH.string("Lift At Bottom")
-                .map(Data.mapper((Boolean b) -> b.toString()));
+                .map(Data.mapper(Object::toString));
         liftController = new LiftController(srcLiftEnc, snkLift);
         SmartDashboard.putNumber("Lift Setpoint", 0D);
 
@@ -147,11 +147,10 @@ public class Robot implements IRobotProgram {
         });
 
         RobotMode.AUTO.setOperation(() -> {
-//            AutoUtil.nowBeginsThePerformance(this);
             liftController.bind();
             StartPos startPos = startPosCtrl.getSelected();
             AutoGoal goal = goalCtrl.getSelected();
-            IAutoRoutine routine = null;
+            IAutoRoutine routine;
             FieldConfig field = getFieldConfiguration();
             boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
             switch (goal) {
