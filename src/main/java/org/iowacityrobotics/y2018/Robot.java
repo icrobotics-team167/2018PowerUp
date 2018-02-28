@@ -172,6 +172,13 @@ public class Robot implements IRobotProgram {
                         routine = new RoutineScaleOther();
                     }
                     break;
+                case SWITCH_IF_ON_STARTING_POS:
+                    if (switchSame) {
+                        routine = new RoutineSwitch();
+                    } else {
+                        routine = new RoutineScaleOther();
+                    }
+                    break;
                 case SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS:
                     if (scaleSame) {
                         routine = new RoutineScaleSame();
@@ -260,6 +267,7 @@ public class Robot implements IRobotProgram {
     private enum AutoGoal {
         SWITCH_IF_ON_STARTING_POS_ELSE_SCALE_IF_ON_STARTING_POS,
         SWITCH_IF_ON_STARTING_POS_ELSE_SCALE,
+        SWITCH_IF_ON_STARTING_POS,
         SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS,
         SCALE_ALWAYS,
         FROM_CENTER_DO_SWITCH,
