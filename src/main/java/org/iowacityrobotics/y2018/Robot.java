@@ -18,6 +18,7 @@ import org.iowacityrobotics.roboed.robot.IRobotProgram;
 import org.iowacityrobotics.roboed.robot.RobotMode;
 import org.iowacityrobotics.roboed.subsystem.SinkSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
+import org.iowacityrobotics.roboed.util.logging.Logs;
 import org.iowacityrobotics.roboed.util.math.Maths;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
@@ -208,6 +209,7 @@ public class Robot implements IRobotProgram {
                 default:
                     throw new RuntimeException("wtf how did you do that");
             }
+            Logs.info("Running strategy: {}", routine.getClass().getSimpleName());
             routine.doTheAutoThing(this, startPos.mult);
         });
 
