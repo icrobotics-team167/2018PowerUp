@@ -4,7 +4,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
+import org.iowacityrobotics.roboed.robot.Flow;
 import org.iowacityrobotics.roboed.util.math.Maths;
+import org.iowacityrobotics.y2018.Robot;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -20,14 +22,12 @@ public class LiftController {
     private final Sink<Double> lift;
     private final double[] setpoint;
     private final AtomicBoolean met;
-    private final Object lock;
     private final Source<Double> source;
 
     public LiftController(Source<Double> enc, Sink<Double> lift) {
         this.lift = lift;
         this.setpoint = new double[3];
         this.met = new AtomicBoolean(false);
-        this.lock = new Object();
         this.source = enc.map(Data.mapper(feedback -> {
             SmartDashboard.putNumber("Lower", setpoint[0]);
             SmartDashboard.putNumber("Target", setpoint[1]);
@@ -41,9 +41,6 @@ public class LiftController {
                 SmartDashboard.putNumber("Error", diff);
                 if (Math.abs(diff) <= ERROR) {
                     met.set(true);
-                    synchronized (lock) {
-                        lock.notifyAll();
-                    }
                     return 0D;
                 } else {
                     return Math.signum(diff) * SPEED;
@@ -67,21 +64,18 @@ public class LiftController {
         met.set(false);
     }
 
-    public void blockUntilMet() {
-        if (!met.get()) {
-            synchronized (lock) {
-                try {
-                    lock.wait();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
+    public void blockUntilMet(Robot bot) {
+        Data.pushState();
+        Data.reset(true);
+        bind();
+        bot.snkLiftEnc.bind(bot.srcLiftEnc);
+        Flow.waitUntil(met::get);
+        Data.popState();
     }
 
-    public void setBlocking(double pos) {
+    public void setBlocking(double pos, Robot bot) {
         set(pos);
-        blockUntilMet();
+        blockUntilMet(bot);
     }
 
 }

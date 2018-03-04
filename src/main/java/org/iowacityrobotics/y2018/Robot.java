@@ -1,7 +1,5 @@
 package org.iowacityrobotics.y2018;
 
-import com.ctre.phoenix.motorcontrol.SensorCollection;
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -12,7 +10,6 @@ import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
-import org.iowacityrobotics.roboed.robot.Devices;
 import org.iowacityrobotics.roboed.robot.Flow;
 import org.iowacityrobotics.roboed.robot.IRobotProgram;
 import org.iowacityrobotics.roboed.robot.RobotMode;
@@ -26,6 +23,7 @@ import org.iowacityrobotics.roboed.vision.CameraType;
 import org.iowacityrobotics.roboed.vision.VisionServer;
 import org.iowacityrobotics.y2018.auto.*;
 import org.iowacityrobotics.y2018.subsystem.*;
+import slab.FakeLift;
 
 public class Robot implements IRobotProgram {
 
@@ -70,22 +68,28 @@ public class Robot implements IRobotProgram {
 //        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
 
         // Lift
-        WPI_TalonSRX liftTalon = Devices.talonSrx(5);
-        SensorCollection sensors = liftTalon.getSensorCollection();
-        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
-        double[] encOffset = new double[] {sensors.getQuadraturePosition()};
+        FakeLift lift = new FakeLift();
+//        WPI_TalonSRX liftTalon = Devices.talonSrx(5);
+//        SensorCollection sensors = liftTalon.getSensorCollection();
+//        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
+        Source<Boolean> liftLimit = lift.sourceLimit;
+//        double[] encOffset = new double[] {sensors.getQuadraturePosition()};
+        double[] encOffset = new double[] {lift.get()};
         srcLift = SubsystemLift.get();
         srcLiftEnc = liftLimit.map(Data.mapper(lim -> {
-            double pos = sensors.getQuadraturePosition();
+//            double pos = sensors.getQuadraturePosition();
+            double pos = lift.get();
             if (!lim) encOffset[0] = pos;
             return Maths.clamp((pos - encOffset[0]) / 27500D, 0D, 1D);
         }));
         srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
                 Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
                         ? 0.5D * v : v));
-        snkLift = SinkSystems.MOTOR.talonSrx(5).join(
-                SinkSystems.MOTOR.talonSrx(6)
-                        .map(Funcs.invertD()));
+//        snkLift = SinkSystems.MOTOR.talonSrx(5).join(
+//                SinkSystems.MOTOR.talonSrx(6)
+//                        .map(Funcs.invertD()));
+        snkLift = lift.sink;
+        // TODO Replace simulated lift with real lift code
         snkLiftEnc = SinkSystems.DASH.number("Lift Encoder");
         Sink<Boolean> snkLimit = SinkSystems.DASH.string("Lift At Bottom")
                 .map(Data.mapper(Object::toString));
@@ -131,7 +135,8 @@ public class Robot implements IRobotProgram {
         SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
 
         // Camera
-        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
+//        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
+        // TODO re-enable camera
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
@@ -209,11 +214,13 @@ public class Robot implements IRobotProgram {
                 default:
                     throw new RuntimeException("wtf how did you do that");
             }
+            snkLiftEnc.bind(srcLiftEnc);
             Logs.info("Running strategy: {}", routine.getClass().getSimpleName());
             routine.doTheAutoThing(this, startPos.mult);
         });
 
         RobotMode.TEST.setOperation(() -> {
+            snkLiftEnc.bind(srcLiftEnc);
             liftController.bind();
             double[] s = new double[] {0D};
             liftController.set(0D);
