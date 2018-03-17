@@ -9,7 +9,7 @@ import org.iowacityrobotics.y2018.Robot;
 public class AutoUtil {
 
     private static final double MIN_MOTOR_MAGN = 0.35D;
-    private static final double MIN_TURN_MAGN = 0.235D;
+    private static final double MIN_TURN_MAGN = 0.255D;
     private static final double COR_TURN_MAGN = -0.08D; // negative magnitude of correctional turning
     private static final double COR_TURN_THRESH = 1.75D; // angular error, in degrees, to start correction at
 
@@ -19,6 +19,7 @@ public class AutoUtil {
         Vector4 vec = new Vector4(0, -speed, 0, 0);
         double initialDist = bot.srcLidarF.get();
         double deltaDist = Math.abs(inches);
+        double errMargin = inches / 5000D;
         double oneMinusDownscale = MIN_MOTOR_MAGN / Math.abs(speed);
         double deltaFactor = (1D - oneMinusDownscale) / deltaDist;
         Source<Double> srcDelta = bot.srcLidarF.map(Data.mapper(v -> 1D - Math.abs(v - initialDist) / deltaDist));
@@ -36,14 +37,24 @@ public class AutoUtil {
         bot.srcLidarF.get();
         long initialTime = System.currentTimeMillis();
         Flow.waitUntil(timeout > 0L
-                ? () -> srcDelta.get() <= 0D || System.currentTimeMillis() - initialTime > timeout
-                : () -> srcDelta.get() <= 0D);
+                ? () -> srcDelta.get() <= errMargin || System.currentTimeMillis() - initialTime > timeout
+                : () -> srcDelta.get() <= errMargin);
 
         Data.popState();
     }
 
     public static void drive(Robot bot, double inches, double speed) {
         driveWithTimeout(bot, inches, speed, -1L);
+    }
+
+    public static void driveTimed(Robot bot, double speed, long time) {
+        Data.pushState();
+
+        Vector4 vec = new Vector4(0, -speed, 0, 0);
+        bot.snkDrive.bind(Data.source(() -> vec));
+        Flow.waitFor(time);
+
+        Data.popState();
     }
 
     public static void strafe(Robot bot, double inches, double speed) {
@@ -91,7 +102,7 @@ public class AutoUtil {
         Source<Double> srcDelta = Data.source(() -> 1D - Math.abs(bot.ahrs.getAngle() - initialAngle) / deltaAngle);
         bot.snkDrive.bind(Data.source(() -> vec)
                 .inter(srcDelta, Data.inter(
-                        (out, delta) -> out.z(speed * (delta * deltaFactor + oneMinusDownscale)))));
+                        (out, delta) -> out.z(absSpeed * (delta * deltaFactor + oneMinusDownscale)))));
         bot.snkAutoProfile.bind(srcDelta);
         bot.snkIntake.bind(Data.source(() -> -0.675D));
         Flow.waitUntil(() -> srcDelta.get() <= 0.025D);
@@ -101,11 +112,10 @@ public class AutoUtil {
 
     public static void skillshot(Robot bot, boolean theQuickness) {
         Data.pushState();
-        double speed = theQuickness ? 0.5D : 0.3275D;
+        double speed = theQuickness ? 0.475D : 0.3275D;
         bot.snkIntake.bind(Data.source(() -> speed));
         Flow.waitFor(1500);
         Data.popState();
     }
-
 
 }

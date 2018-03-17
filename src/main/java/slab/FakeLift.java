@@ -31,7 +31,6 @@ public class FakeLift {
         if (lastSim > 0L) {
             double elapsed = (time - lastSim) / 1e6D;
             double rate = vel[0] * VEL_FACTOR - GRAV_FACTOR;
-            Logs.info(String.format("%d += %.2f u/ms * %.2f ms", pos, rate, elapsed));
             pos = Math.max(Math.min((int)Math.floor(pos + elapsed * rate), MAX_POS), 0);
         }
         lastSim = time;

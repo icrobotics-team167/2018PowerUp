@@ -15,7 +15,7 @@ public class RoutineCenter implements IAutoRoutine {
         AutoUtil.driveWithTimeout(bot, 58D, 0.9D, 2000L); // drive forwards to switch
         Data.popState();
 
-        AutoUtil.skillshot(bot, false); // release the cube
+        AutoUtil.skillshot(bot, true); // release the cube
         AutoUtil.driveWithTimeout(bot, 25D, -1D, 750L); // back off so cube holder doesn't get caught
 
         // TODO Pick up another cube?

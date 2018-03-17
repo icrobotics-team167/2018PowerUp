@@ -1,7 +1,6 @@
 package org.iowacityrobotics.y2018;
 
 import com.kauailabs.navx.frc.AHRS;
-import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -19,10 +18,13 @@ import org.iowacityrobotics.roboed.util.logging.Logs;
 import org.iowacityrobotics.roboed.util.math.Maths;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
-import org.iowacityrobotics.roboed.vision.CameraType;
-import org.iowacityrobotics.roboed.vision.VisionServer;
 import org.iowacityrobotics.y2018.auto.*;
-import org.iowacityrobotics.y2018.subsystem.*;
+import org.iowacityrobotics.y2018.subsystem.LiftController;
+import org.iowacityrobotics.y2018.subsystem.PrimaryDriveScheme;
+import org.iowacityrobotics.y2018.subsystem.SubsystemIntake;
+import org.iowacityrobotics.y2018.subsystem.SubsystemLift;
+import org.iowacityrobotics.y2018.util.Controls;
+import org.iowacityrobotics.y2018.util.PredicatedIntegral;
 import slab.FakeLift;
 
 public class Robot implements IRobotProgram {
@@ -31,10 +33,7 @@ public class Robot implements IRobotProgram {
     public final AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
     // Ramp
-    public Source<Double> srcRampServo;
-    public Sink<Double> snkRampServo;
-    public Source<DoubleSolenoid.Value> srcRampPiston;
-    public Sink<DoubleSolenoid.Value> snkRampPiston;
+    // TODO Implement
 
     // Lift
     public Source<Double> srcLift;
@@ -62,10 +61,7 @@ public class Robot implements IRobotProgram {
     @Override
     public void init() {
         // Ramp
-        srcRampPiston = SubsystemRamp.getPiston();
-        srcRampServo = SubsystemRamp.getServo();
-        snkRampServo = SinkSystems.MOTOR.servo(5);
-//        snkRampPiston = SinkSystems.OTHER.dblSolenoid(3, 4);
+        // TODO Implement
 
         // Lift
         FakeLift lift = new FakeLift();
@@ -109,7 +105,7 @@ public class Robot implements IRobotProgram {
                         .map(Funcs.invertD()));
 
         // LIDAR
-        srcLidarF = SourceSystems.SENSOR.lidarLite(0, 38072.7486D);
+        srcLidarF = SourceSystems.SENSOR.lidarLite(0, 39092.0732D);
         snkLidarF = SinkSystems.DASH.number("Front LIDAR");
         srcLidarS = SourceSystems.SENSOR.lidarLite(1, 38072.7486D);
         snkLidarS = SinkSystems.DASH.number("Side LIDAR");
@@ -140,8 +136,6 @@ public class Robot implements IRobotProgram {
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
-            snkRampServo.bind(srcRampServo);
-//            snkRampPiston.bind(srcRampPiston);
             snkLift.bind(srcLift);
             snkDrive.bind(primaryDriveCtrl.getSelected().source);
             snkIntake.bind(srcIntake);
@@ -215,22 +209,26 @@ public class Robot implements IRobotProgram {
                     throw new RuntimeException("wtf how did you do that");
             }
             snkLiftEnc.bind(srcLiftEnc);
+            liftController.setBlocking(0D, this);
             Logs.info("Running strategy: {}", routine.getClass().getSimpleName());
             routine.doTheAutoThing(this, startPos.mult);
         });
 
+        final double servoStartL = 0.96D, servoStartR = 0.96D;
+        Source<Double> diff = SourceSystems.CONTROL.axis(2, Controls.R_AXIS).map(Funcs.invertD())
+                .inter(SourceSystems.CONTROL.axis(2, Controls.L_AXIS), Funcs.sumD())
+                .map(Data.mapper(v -> v * 0.0003D));
+        Source<Double> outputTestL = SourceSystems.CONTROL.button(2, Controls.A)
+                .inter(diff, new PredicatedIntegral(servoStartL, 0D, 1D));
+        Source<Double> outputTestR = SourceSystems.CONTROL.button(2, Controls.B)
+                .inter(diff, new PredicatedIntegral(servoStartR, 0D, 1D));
+        Sink<Double> sinkTestL = SinkSystems.MOTOR.servo(7, servoStartL)
+                .join(SinkSystems.DASH.number("L Servo Pos"));
+        Sink<Double> sinkTestR = SinkSystems.MOTOR.servo(6, servoStartR)
+                .join(SinkSystems.DASH.number("R Servo Pos"));
         RobotMode.TEST.setOperation(() -> {
-            snkLiftEnc.bind(srcLiftEnc);
-            liftController.bind();
-            double[] s = new double[] {0D};
-            liftController.set(0D);
-            Flow.whileWaiting(() -> {
-                double current = SmartDashboard.getNumber("Lift Setpoint", 0D);
-                if (Math.abs(current - s[0]) >= 1e-4) {
-                    liftController.set(current);
-                    s[0] = current;
-                }
-            });
+            sinkTestL.bind(outputTestL);
+            sinkTestR.bind(outputTestR);
             Flow.waitInfinite();
         });
 
