@@ -214,17 +214,16 @@ public class Robot implements IRobotProgram {
             routine.doTheAutoThing(this, startPos.mult);
         });
 
-        final double servoStartL = 0.96D, servoStartR = 0.96D;
         Source<Double> diff = SourceSystems.CONTROL.axis(2, Controls.R_AXIS).map(Funcs.invertD())
                 .inter(SourceSystems.CONTROL.axis(2, Controls.L_AXIS), Funcs.sumD())
                 .map(Data.mapper(v -> v * 0.0003D));
         Source<Double> outputTestL = SourceSystems.CONTROL.button(2, Controls.A)
-                .inter(diff, new PredicatedIntegral(servoStartL, 0D, 1D));
+                .inter(diff, new PredicatedIntegral(0.9, 0D, 1D));
         Source<Double> outputTestR = SourceSystems.CONTROL.button(2, Controls.B)
-                .inter(diff, new PredicatedIntegral(servoStartR, 0D, 1D));
-        Sink<Double> sinkTestL = SinkSystems.MOTOR.servo(7, servoStartL)
+                .inter(diff, new PredicatedIntegral(0.9, 0D, 1D));
+        Sink<Double> sinkTestL = SinkSystems.MOTOR.servo(7)
                 .join(SinkSystems.DASH.number("L Servo Pos"));
-        Sink<Double> sinkTestR = SinkSystems.MOTOR.servo(6, servoStartR)
+        Sink<Double> sinkTestR = SinkSystems.MOTOR.servo(6)
                 .join(SinkSystems.DASH.number("R Servo Pos"));
         RobotMode.TEST.setOperation(() -> {
             sinkTestL.bind(outputTestL);

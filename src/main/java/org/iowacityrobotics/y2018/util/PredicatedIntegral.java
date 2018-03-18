@@ -5,13 +5,18 @@ import org.iowacityrobotics.roboed.util.math.Maths;
 
 public class PredicatedIntegral extends Interpolator<Boolean, Double, Double> {
 
-    private final double lower, upper;
+    private final double initial, lower, upper;
     private double accum;
 
     public PredicatedIntegral(double initial, double lower, double upper) {
-        this.accum = initial;
+        this.accum = this.initial = initial;
         this.lower = lower;
         this.upper = upper;
+    }
+
+    @Override
+    public void reset(boolean temp) {
+        if (!temp) accum = initial;
     }
 
     @Override
