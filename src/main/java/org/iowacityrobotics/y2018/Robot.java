@@ -1,5 +1,7 @@
 package org.iowacityrobotics.y2018;
 
+import com.ctre.phoenix.motorcontrol.SensorCollection;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.SPI;
@@ -9,9 +11,11 @@ import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.Funcs;
 import org.iowacityrobotics.roboed.data.sink.Sink;
 import org.iowacityrobotics.roboed.data.source.Source;
+import org.iowacityrobotics.roboed.robot.Devices;
 import org.iowacityrobotics.roboed.robot.Flow;
 import org.iowacityrobotics.roboed.robot.IRobotProgram;
 import org.iowacityrobotics.roboed.robot.RobotMode;
+import org.iowacityrobotics.roboed.subsystem.MapperSystems;
 import org.iowacityrobotics.roboed.subsystem.SinkSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
 import org.iowacityrobotics.roboed.util.logging.Logs;
@@ -23,9 +27,8 @@ import org.iowacityrobotics.y2018.subsystem.LiftController;
 import org.iowacityrobotics.y2018.subsystem.PrimaryDriveScheme;
 import org.iowacityrobotics.y2018.subsystem.SubsystemIntake;
 import org.iowacityrobotics.y2018.subsystem.SubsystemLift;
+import org.iowacityrobotics.y2018.util.Consts;
 import org.iowacityrobotics.y2018.util.Controls;
-import org.iowacityrobotics.y2018.util.PredicatedIntegral;
-import slab.FakeLift;
 
 public class Robot implements IRobotProgram {
 
@@ -33,7 +36,10 @@ public class Robot implements IRobotProgram {
     public final AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
     // Ramp
-    // TODO Implement
+    public Source<Boolean> srcRampRelease;
+    public Source<Double> srcRampWinch;
+    public Sink<Boolean> snkRampRelease;
+    public Sink<Double> snkRampWinch;
 
     // Lift
     public Source<Double> srcLift;
@@ -61,19 +67,45 @@ public class Robot implements IRobotProgram {
     @Override
     public void init() {
         // Ramp
-        // TODO Implement
+        srcRampRelease = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZL)
+                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZR), Funcs.and());
+        Sink<Boolean> rampA = SinkSystems.MOTOR.servo(6)
+                .map(MapperSystems.CONTROL.buttonValue(0.9D, 0.8D));
+        Sink<Boolean> rampB = SinkSystems.MOTOR.servo(7)
+                .map(MapperSystems.CONTROL.buttonValue(0.9D, 0.8D));
+        snkRampRelease = rampA.join(rampB);
+
+        srcRampWinch = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.START)
+                .map(MapperSystems.CONTROL.buttonValue(0D, 1D));
+        snkRampWinch = SinkSystems.MOTOR.victorSp(4)
+                .join(SinkSystems.MOTOR.victorSp(5));
 
         // Lift
-        FakeLift lift = new FakeLift();
-//        WPI_TalonSRX liftTalon = Devices.talonSrx(5);
-//        SensorCollection sensors = liftTalon.getSensorCollection();
-//        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
+        /// BEGIN real lift
+        WPI_TalonSRX liftTalon = Devices.talonSrx(5);
+        SensorCollection sensors = liftTalon.getSensorCollection();
+        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
+        double[] encOffset = new double[] {sensors.getQuadraturePosition()};
+        srcLift = SubsystemLift.get();
+        srcLiftEnc = liftLimit.map(Data.mapper(lim -> {
+            double pos = sensors.getQuadraturePosition();
+            if (!lim) encOffset[0] = pos;
+            return Maths.clamp((pos - encOffset[0]) / 27500D, 0D, 1D);
+        }));
+        srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
+                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
+                        ? 0.5D * v : v));
+        snkLift = SinkSystems.MOTOR.talonSrx(5).join(
+                SinkSystems.MOTOR.talonSrx(6)
+                        .map(Funcs.invertD()));
+        /// END real lift
+
+        /// BEGIN fake lift
+        /*FakeLift lift = new FakeLift();
         Source<Boolean> liftLimit = lift.sourceLimit;
-//        double[] encOffset = new double[] {sensors.getQuadraturePosition()};
         double[] encOffset = new double[] {lift.get()};
         srcLift = SubsystemLift.get();
         srcLiftEnc = liftLimit.map(Data.mapper(lim -> {
-//            double pos = sensors.getQuadraturePosition();
             double pos = lift.get();
             if (!lim) encOffset[0] = pos;
             return Maths.clamp((pos - encOffset[0]) / 27500D, 0D, 1D);
@@ -81,11 +113,9 @@ public class Robot implements IRobotProgram {
         srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
                 Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
                         ? 0.5D * v : v));
-//        snkLift = SinkSystems.MOTOR.talonSrx(5).join(
-//                SinkSystems.MOTOR.talonSrx(6)
-//                        .map(Funcs.invertD()));
-        snkLift = lift.sink;
-        // TODO Replace simulated lift with real lift code
+        snkLift = lift.sink;*/
+        /// EMD fake lift
+
         snkLiftEnc = SinkSystems.DASH.number("Lift Encoder");
         Sink<Boolean> snkLimit = SinkSystems.DASH.string("Lift At Bottom")
                 .map(Data.mapper(Object::toString));
@@ -138,6 +168,8 @@ public class Robot implements IRobotProgram {
         RobotMode.TELEOP.setOperation(() -> {
             snkLift.bind(srcLift);
             snkDrive.bind(primaryDriveCtrl.getSelected().source);
+            snkRampRelease.bind(srcRampRelease);
+            snkRampWinch.bind(srcRampWinch);
             snkIntake.bind(srcIntake);
             snkLidarF.bind(srcLidarF);
             snkLidarS.bind(srcLidarS);
@@ -212,23 +244,6 @@ public class Robot implements IRobotProgram {
             liftController.setBlocking(0D, this);
             Logs.info("Running strategy: {}", routine.getClass().getSimpleName());
             routine.doTheAutoThing(this, startPos.mult);
-        });
-
-        Source<Double> diff = SourceSystems.CONTROL.axis(2, Controls.R_AXIS).map(Funcs.invertD())
-                .inter(SourceSystems.CONTROL.axis(2, Controls.L_AXIS), Funcs.sumD())
-                .map(Data.mapper(v -> v * 0.0003D));
-        Source<Double> outputTestL = SourceSystems.CONTROL.button(2, Controls.A)
-                .inter(diff, new PredicatedIntegral(0.9, 0D, 1D));
-        Source<Double> outputTestR = SourceSystems.CONTROL.button(2, Controls.B)
-                .inter(diff, new PredicatedIntegral(0.9, 0D, 1D));
-        Sink<Double> sinkTestL = SinkSystems.MOTOR.servo(7)
-                .join(SinkSystems.DASH.number("L Servo Pos"));
-        Sink<Double> sinkTestR = SinkSystems.MOTOR.servo(6)
-                .join(SinkSystems.DASH.number("R Servo Pos"));
-        RobotMode.TEST.setOperation(() -> {
-            sinkTestL.bind(outputTestL);
-            sinkTestR.bind(outputTestR);
-            Flow.waitInfinite();
         });
 
         RobotMode.DISABLED.setOperation(() -> {
