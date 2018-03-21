@@ -68,7 +68,8 @@ public class Robot implements IRobotProgram {
     public void init() {
         // Ramp
         srcRampRelease = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZL)
-                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZR), Funcs.and());
+                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZR), Funcs.and())
+                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.A), Funcs.and());
         Sink<Boolean> rampA = SinkSystems.MOTOR.servo(6)
                 .map(MapperSystems.CONTROL.buttonValue(0.9D, 0.8D));
         Sink<Boolean> rampB = SinkSystems.MOTOR.servo(7)
