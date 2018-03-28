@@ -57,27 +57,6 @@ public class AutoUtil {
         Data.popState();
     }
 
-    public static void strafe(Robot bot, double inches, double speed) {
-        Data.pushState();
-
-        bot.ahrs.reset();
-        double absSpeed = Math.abs(speed) * Math.signum(inches);
-        Vector4 vec = new Vector4(absSpeed, 0, 0, 0);
-        double initialDist = bot.srcLidarS.get();
-        double deltaDist = Math.abs(inches);
-        double oneMinusDownscale = MIN_MOTOR_MAGN / Math.abs(speed);
-        double deltaFactor = (1D - oneMinusDownscale) / deltaDist;
-        Source<Double> srcDelta = bot.srcLidarS.map(Data.mapper(v -> 1D - Math.abs(v - initialDist) / deltaDist));
-        bot.snkDrive.bind(Data.source(() -> vec)
-                .inter(srcDelta, Data.inter(
-                        (out, delta) -> out.x(absSpeed * (delta * deltaFactor + oneMinusDownscale)).w(bot.ahrs.getAngle()))));
-        bot.snkAutoProfile.bind(srcDelta);
-        bot.srcLidarS.get();
-        Flow.waitUntil(() -> srcDelta.get() <= 0D);
-
-        Data.popState();
-    }
-
     public static void strafeBlind(Robot bot, long ms, double speed) {
         Data.pushState();
 

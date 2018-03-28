@@ -12,12 +12,12 @@ import org.iowacityrobotics.y2018.util.Controls;
 public class SubsystemIntake {
 
     private static final Source<Double> srcOutSlow = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.B)
-            .map(MapperSystems.CONTROL.buttonValue(0D, 0.675D));
+            .map(MapperSystems.CONTROL.buttonValue(0D, 0.575D));
 
     private static final Source<Double> srcOut = SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.L_AXIS);
 
     private static final Source<Double> srcInSlow = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.A)
-            .map(MapperSystems.CONTROL.buttonValue(0D, -0.675D));
+            .map(MapperSystems.CONTROL.buttonValue(0D, -0.575D));
 
     private static final Source<Double> srcIn = SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.R_AXIS)
             .map(Funcs.invertD());

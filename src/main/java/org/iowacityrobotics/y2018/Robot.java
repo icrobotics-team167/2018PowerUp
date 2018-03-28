@@ -22,11 +22,10 @@ import org.iowacityrobotics.roboed.util.logging.Logs;
 import org.iowacityrobotics.roboed.util.math.Maths;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.roboed.util.robot.MotorTuple4;
+import org.iowacityrobotics.roboed.vision.CameraType;
+import org.iowacityrobotics.roboed.vision.VisionServer;
 import org.iowacityrobotics.y2018.auto.*;
-import org.iowacityrobotics.y2018.subsystem.LiftController;
-import org.iowacityrobotics.y2018.subsystem.PrimaryDriveScheme;
-import org.iowacityrobotics.y2018.subsystem.SubsystemIntake;
-import org.iowacityrobotics.y2018.subsystem.SubsystemLift;
+import org.iowacityrobotics.y2018.subsystem.*;
 import org.iowacityrobotics.y2018.util.Consts;
 import org.iowacityrobotics.y2018.util.Controls;
 
@@ -36,10 +35,10 @@ public class Robot implements IRobotProgram {
     public final AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
     // Ramp
-    public Source<Boolean> srcRampRelease;
-    public Source<Double> srcRampWinch;
-    public Sink<Boolean> snkRampRelease;
-    public Sink<Double> snkRampWinch;
+    public Source<RampState> srcRampState;
+    public Source<Double> srcRampWinchA, srcRampWinchB;
+    public Sink<Double> snkRampReleaseA, snkRampReleaseB;
+    public Sink<Double> snkRampWinchA, snkRampWinchB;
 
     // Lift
     public Source<Double> srcLift;
@@ -57,9 +56,7 @@ public class Robot implements IRobotProgram {
 
     // LIDAR
     public Source<Double> srcLidarF;
-    public Source<Double> srcLidarS;
     public Sink<Double> snkLidarF;
-    public Sink<Double> snkLidarS;
 
     // Auto feedback
     public Sink<Double> snkAutoProfile;
@@ -67,19 +64,19 @@ public class Robot implements IRobotProgram {
     @Override
     public void init() {
         // Ramp
-        srcRampRelease = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZL)
-                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.ZR), Funcs.and())
-                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.A), Funcs.and());
-        Sink<Boolean> rampA = SinkSystems.MOTOR.servo(6)
-                .map(MapperSystems.CONTROL.buttonValue(0.9D, 0.8D));
-        Sink<Boolean> rampB = SinkSystems.MOTOR.servo(7)
-                .map(MapperSystems.CONTROL.buttonValue(0.9D, 0.8D));
-        snkRampRelease = rampA.join(rampB);
+        srcRampState = new RampStator();
+        snkRampReleaseA = SinkSystems.MOTOR.servo(5, RampState.AUTO.a);
+        snkRampReleaseB = SinkSystems.MOTOR.servo(6, RampState.AUTO.b);
 
-        srcRampWinch = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.START)
-                .map(MapperSystems.CONTROL.buttonValue(0D, 1D));
-        snkRampWinch = SinkSystems.MOTOR.victorSp(4)
-                .join(SinkSystems.MOTOR.victorSp(5));
+        Source<Boolean> rampMod = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.X);
+        srcRampWinchA = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.START)
+                .map(MapperSystems.CONTROL.buttonValue(0D, 1D))
+                .inter(rampMod, Data.inter((d, b) -> b ? -d : d));
+        srcRampWinchB = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.SELECT)
+                .map(MapperSystems.CONTROL.buttonValue(0D, 1D))
+                .inter(rampMod, Data.inter((d, b) -> b ? -d : d));
+        snkRampWinchA = SinkSystems.MOTOR.victorSp(0);
+        snkRampWinchB = SinkSystems.MOTOR.victorSp(1);
 
         // Lift
         /// BEGIN real lift
@@ -93,9 +90,9 @@ public class Robot implements IRobotProgram {
             if (!lim) encOffset[0] = pos;
             return Maths.clamp((pos - encOffset[0]) / 27500D, 0D, 1D);
         }));
-        srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
-                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
-                        ? 0.5D * v : v));
+//        srcLift = srcLift.inter(srcLiftEnc, // (lift feedback controller)
+//                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
+//                        ? 0.5D * v : v));
         snkLift = SinkSystems.MOTOR.talonSrx(5).join(
                 SinkSystems.MOTOR.talonSrx(6)
                         .map(Funcs.invertD()));
@@ -125,9 +122,8 @@ public class Robot implements IRobotProgram {
 
         // Drive
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
-        motors.getFrontRight().setInverted(true);
-        motors.getRearRight().setInverted(true);
-        snkDrive = SinkSystems.DRIVE.mecanum(motors);
+        snkDrive = SinkSystems.DRIVE.mecanum(motors)
+                .map(Data.mapper(v -> v.y(-v.y())));
 
         // Intake
         srcIntake = SubsystemIntake.get();
@@ -138,8 +134,6 @@ public class Robot implements IRobotProgram {
         // LIDAR
         srcLidarF = SourceSystems.SENSOR.lidarLite(0, 39092.0732D);
         snkLidarF = SinkSystems.DASH.number("Front LIDAR");
-        srcLidarS = SourceSystems.SENSOR.lidarLite(1, 38072.7486D);
-        snkLidarS = SinkSystems.DASH.number("Side LIDAR");
 
         // Auto feedback
         snkAutoProfile = SinkSystems.DASH.number("Motion profile");
@@ -156,30 +150,33 @@ public class Robot implements IRobotProgram {
         SmartDashboard.putData("Autonomous Goal", goalCtrl);
 
         // Control scheme
-        SendableChooser<PrimaryDriveScheme> primaryDriveCtrl = new SendableChooser<>();
-        for (PrimaryDriveScheme scheme : PrimaryDriveScheme.values()) primaryDriveCtrl.addObject(scheme.name(), scheme);
-        primaryDriveCtrl.addDefault(PrimaryDriveScheme.Y_DRIVE.name(), PrimaryDriveScheme.Y_DRIVE);
-        SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
+//        SendableChooser<PrimaryDriveScheme> primaryDriveCtrl = new SendableChooser<>();
+//        for (PrimaryDriveScheme scheme : PrimaryDriveScheme.values()) primaryDriveCtrl.addObject(scheme.name(), scheme);
+//        primaryDriveCtrl.addDefault(PrimaryDriveScheme.Y_DRIVE.name(), PrimaryDriveScheme.Y_DRIVE);
+//        SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
 
         // Camera
-//        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
-        // TODO re-enable camera
+        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
             snkLift.bind(srcLift);
-            snkDrive.bind(primaryDriveCtrl.getSelected().source);
-            snkRampRelease.bind(srcRampRelease);
-            snkRampWinch.bind(srcRampWinch);
+//            snkDrive.bind(primaryDriveCtrl.getSelected().source);
+            snkDrive.bind(PrimaryDriveScheme.Y_DRIVE.source);
+            snkRampReleaseA.bind(srcRampState.map(Data.mapper(s -> s.a)));
+            snkRampReleaseB.bind(srcRampState.map(Data.mapper(s -> s.b)));
+            snkRampWinchA.bind(srcRampWinchA);
+            snkRampWinchB.bind(srcRampWinchB);
             snkIntake.bind(srcIntake);
             snkLidarF.bind(srcLidarF);
-            snkLidarS.bind(srcLidarS);
             snkLiftEnc.bind(srcLiftEnc);
             snkLimit.bind(liftLimit);
             Flow.waitInfinite();
         });
 
         RobotMode.AUTO.setOperation(() -> {
+            snkRampReleaseA.bind(srcRampState.map(Data.mapper(s -> s.a)));
+            snkRampReleaseB.bind(srcRampState.map(Data.mapper(s -> s.b)));
             liftController.bind();
             StartPos startPos = startPosCtrl.getSelected();
             AutoGoal goal = goalCtrl.getSelected();
@@ -221,6 +218,13 @@ public class Robot implements IRobotProgram {
                         routine = new RoutineAutoLine();
                     }
                     break;
+                case SCALE_IF_ON_STARTING_POS:
+                    if (scaleSame) {
+                        routine = new RoutineScaleSame();
+                    } else {
+                        routine = new RoutineAutoLine();
+                    }
+                    break;
                 case SCALE_ALWAYS:
                     if (scaleSame) {
                         routine = new RoutineScaleSame();
@@ -242,9 +246,36 @@ public class Robot implements IRobotProgram {
                     throw new RuntimeException("wtf how did you do that");
             }
             snkLiftEnc.bind(srcLiftEnc);
+            snkLidarF.bind(srcLidarF);
             liftController.setBlocking(0D, this);
-            Logs.info("Running strategy: {}", routine.getClass().getSimpleName());
+            Logs.info("Running strategy {} on side {}",
+                    routine.getClass().getSimpleName(),
+                    startPos.name());
             routine.doTheAutoThing(this, startPos.mult);
+        });
+
+        RobotMode.TEST.setOperation(() -> {
+            snkLidarF.bind(srcLidarF);
+            snkLiftEnc.bind(srcLiftEnc);
+            snkRampReleaseA.bind(srcRampState.map(Data.mapper(s -> s.a)));
+            snkRampReleaseB.bind(srcRampState.map(Data.mapper(s -> s.b)));
+            liftController.bind();
+            liftController.set(0D);
+            SmartDashboard.putBoolean("set lift", false);
+            SmartDashboard.putBoolean("reset lift", false);
+            SmartDashboard.putNumber("Lift Setpoint", 0D);
+            Flow.whileWaiting(() -> {
+                SmartDashboard.getBoolean("reset lift", false);
+                SmartDashboard.getBoolean("set lift", false);
+                if (SmartDashboard.getBoolean("reset lift", false)) {
+                    liftController.set(0);
+                    SmartDashboard.putBoolean("reset lift", false);
+                } else if (SmartDashboard.getBoolean("set lift", false)) {
+                    liftController.set(0.5D);
+                    SmartDashboard.putBoolean("set lift", false);
+                }
+            });
+            Flow.waitInfinite();
         });
 
         RobotMode.DISABLED.setOperation(() -> {
@@ -253,7 +284,15 @@ public class Robot implements IRobotProgram {
     }
 
     private FieldConfig getFieldConfiguration() {
-        return FieldConfig.parse(DriverStation.getInstance().getGameSpecificMessage());
+        DriverStation ds = DriverStation.getInstance();
+        String data = ds.getGameSpecificMessage();
+        while (data == null && !Thread.currentThread().isInterrupted()) {
+            try {
+                data = ds.getGameSpecificMessage();
+            } catch (Exception ignored) {}
+        }
+        if (data == null) Flow.end();
+        return FieldConfig.parse(data);
     }
 
     private enum FieldConfig {
@@ -291,6 +330,7 @@ public class Robot implements IRobotProgram {
         SWITCH_IF_ON_STARTING_POS_ELSE_SCALE,
         SWITCH_IF_ON_STARTING_POS,
         SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS,
+        SCALE_IF_ON_STARTING_POS,
         SCALE_ALWAYS,
         FROM_CENTER_DO_SWITCH,
         DRIVE_ACROSS_AUTO_LINE,
