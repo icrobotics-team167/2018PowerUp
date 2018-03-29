@@ -61,8 +61,13 @@ public class AutoUtil {
         Data.pushState();
 
         bot.ahrs.reset();
+        double initialAngle = bot.ahrs.getAngle();
+        Source<Double> srcAngularErr = Data.source(() -> bot.ahrs.getAngle() - initialAngle);
+
         Vector4 vec = new Vector4(speed, 0, 0, 0);
-        bot.snkDrive.bind(Data.source(() -> vec));
+        bot.snkDrive.bind(Data.source(() -> vec)
+                .inter(srcAngularErr, Data.inter(
+                        (out, err) -> out.z(Math.abs(err) <= COR_TURN_THRESH ? 0D : (Math.signum(err) * COR_TURN_MAGN)))));
         Flow.waitFor(ms);
 
         Data.popState();
