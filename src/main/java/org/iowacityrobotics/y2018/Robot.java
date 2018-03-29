@@ -206,7 +206,7 @@ public class Robot implements IRobotProgram {
                     if (switchSame) {
                         routine = new RoutineSwitch();
                     } else {
-                        routine = new RoutineScaleOther();
+                        routine = new RoutineAutoLine();
                     }
                     break;
                 case SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS:
