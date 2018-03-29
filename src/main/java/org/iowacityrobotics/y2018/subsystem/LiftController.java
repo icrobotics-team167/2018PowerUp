@@ -17,7 +17,7 @@ public class LiftController {
 
     private static final double TOLERANCE = 1200D / 27500D;
     private static final double ERROR = 600D / 27500D;
-    private static final double SPEED = -0.375D;
+    private static final double SPEED = -0.48D;
 
     private final Sink<Double> lift;
     private final double[] setpoint;

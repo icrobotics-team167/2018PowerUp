@@ -11,11 +11,8 @@ public class RoutineCenter implements IAutoRoutine {
         AutoUtil.strafeBlind(bot, 1350L + 335L * mult, mult * -1D); // strafe towards side with active switch
         Logs.info("step 2 done");
 
-//        Data.pushState();
-//        bot.snkLift.bind(Data.source(() -> -0.480D)); // while raising the cube...
-        bot.liftController.set(0.5D);
+        bot.liftController.set(0.5D); // instruct the lift to hold the cube in the air
         AutoUtil.driveWithTimeout(bot, 79D, 0.9D, 2000L); // drive forwards to switch
-//        Data.popState();
         Logs.info("step 3 done");
 
         AutoUtil.skillshot(bot, true); // release the cube
