@@ -5,7 +5,7 @@ import org.iowacityrobotics.y2018.Robot;
 
 public class RoutineCenter implements IAutoRoutine {
     @Override
-    public void doTheAutoThing(Robot bot, int mult) {
+    public void doTheAutoThing(Robot bot, int mult, boolean two) {
         AutoUtil.drive(bot, 12D, 0.9D); // drive forwards a bit
         Logs.info("step 1 done");
         AutoUtil.strafeBlind(bot, 1350L + 335L * mult, mult * -1D); // strafe towards side with active switch

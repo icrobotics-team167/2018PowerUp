@@ -5,6 +5,6 @@ import org.iowacityrobotics.y2018.Robot;
 @FunctionalInterface
 public interface IAutoRoutine {
 
-    void doTheAutoThing(Robot robot, int mult);
+    void doTheAutoThing(Robot robot, int mult, boolean two);
 
 }

@@ -5,7 +5,7 @@ import org.iowacityrobotics.y2018.Robot;
 public class RoutineScaleSame implements IAutoRoutine {
 
     @Override
-    public void doTheAutoThing(Robot bot, int mult) {
+    public void doTheAutoThing(Robot bot, int mult, boolean two) {
         AutoUtil.drive(bot, 309.56D, 0.9D); // drive forwards until level with scale
         AutoUtil.turn(bot, mult * 90, 0.75D); // turn towards scale
         doScalePlacement(bot); // place the cube

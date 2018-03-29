@@ -149,11 +149,10 @@ public class Robot implements IRobotProgram {
         goalCtrl.addDefault(AutoGoal.DRIVE_ACROSS_AUTO_LINE.name(), AutoGoal.DRIVE_ACROSS_AUTO_LINE);
         SmartDashboard.putData("Autonomous Goal", goalCtrl);
 
-        // Control scheme
-//        SendableChooser<PrimaryDriveScheme> primaryDriveCtrl = new SendableChooser<>();
-//        for (PrimaryDriveScheme scheme : PrimaryDriveScheme.values()) primaryDriveCtrl.addObject(scheme.name(), scheme);
-//        primaryDriveCtrl.addDefault(PrimaryDriveScheme.Y_DRIVE.name(), PrimaryDriveScheme.Y_DRIVE);
-//        SmartDashboard.putData("Primary Drive", primaryDriveCtrl);
+        SendableChooser<Boolean> twoCtrl = new SendableChooser<>();
+        twoCtrl.addDefault("Yes, do two", true);
+        twoCtrl.addObject("No, only do one", false);
+        SmartDashboard.putData("Do two cubes?", twoCtrl);
 
         // Camera
         VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
@@ -251,7 +250,7 @@ public class Robot implements IRobotProgram {
             Logs.info("Running strategy {} on side {}",
                     routine.getClass().getSimpleName(),
                     startPos.name());
-            routine.doTheAutoThing(this, startPos.mult);
+            routine.doTheAutoThing(this, startPos.mult, twoCtrl.getSelected());
         });
 
         RobotMode.TEST.setOperation(() -> {
