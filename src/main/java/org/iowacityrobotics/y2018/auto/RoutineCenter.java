@@ -28,11 +28,11 @@ public class RoutineCenter implements IAutoRoutine {
             // slowly advance towards cube pile while running intake
             Data.pushState();
             bot.snkIntake.bind(Data.source(() -> -0.675D));
-            AutoUtil.driveWithTimeout(bot, 68.851D, 0.35D, 3000L);
+            AutoUtil.driveTimed(bot, 0.35D, 3000L);
             Data.popState();
 
             // back off cube pile and turn back towards switch
-            AutoUtil.drive(bot, -68.862D, 0.7D);
+            AutoUtil.driveTimed(bot, -0.7D, 1500L);
             AutoUtil.turn(bot, -45D * mult, 0.9D);
 
             // approach switch and drop cube
