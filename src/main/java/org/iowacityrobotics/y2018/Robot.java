@@ -183,52 +183,11 @@ public class Robot implements IRobotProgram {
             FieldConfig field = getFieldConfiguration();
             boolean switchSame = field.switchSide == startPos, scaleSame = field.scaleSide == startPos;
             switch (goal) {
-                case SWITCH_IF_ON_STARTING_POS_ELSE_SCALE_IF_ON_STARTING_POS:
-                    if (switchSame) {
-                        routine = new RoutineSwitch();
-                    } else if (scaleSame) {
-                        routine = new RoutineScaleSame();
-                    } else {
-                        routine = new RoutineAutoLine();
-                    }
-                    break;
-                case SWITCH_IF_ON_STARTING_POS_ELSE_SCALE:
-                    if (switchSame) {
-                        routine = new RoutineSwitch();
-                    } else if (scaleSame){
-                        routine = new RoutineScaleSame();
-                    } else {
-                        routine = new RoutineScaleOther();
-                    }
-                    break;
                 case SWITCH_IF_ON_STARTING_POS:
                     if (switchSame) {
                         routine = new RoutineSwitch();
                     } else {
                         routine = new RoutineAutoLine();
-                    }
-                    break;
-                case SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS:
-                    if (scaleSame) {
-                        routine = new RoutineScaleSame();
-                    } else if (switchSame) {
-                        routine = new RoutineSwitch();
-                    } else {
-                        routine = new RoutineAutoLine();
-                    }
-                    break;
-                case SCALE_IF_ON_STARTING_POS:
-                    if (scaleSame) {
-                        routine = new RoutineScaleSame();
-                    } else {
-                        routine = new RoutineAutoLine();
-                    }
-                    break;
-                case SCALE_ALWAYS:
-                    if (scaleSame) {
-                        routine = new RoutineScaleSame();
-                    } else {
-                        routine = new RoutineScaleOther();
                     }
                     break;
                 case FROM_CENTER_DO_SWITCH:
@@ -325,12 +284,7 @@ public class Robot implements IRobotProgram {
     }
 
     private enum AutoGoal {
-        SWITCH_IF_ON_STARTING_POS_ELSE_SCALE_IF_ON_STARTING_POS,
-        SWITCH_IF_ON_STARTING_POS_ELSE_SCALE,
         SWITCH_IF_ON_STARTING_POS,
-        SCALE_IF_ON_STARTING_POS_ELSE_SWITCH_IF_ON_STARTING_POS,
-        SCALE_IF_ON_STARTING_POS,
-        SCALE_ALWAYS,
         FROM_CENTER_DO_SWITCH,
         DRIVE_ACROSS_AUTO_LINE,
         DO_NOTHING_FOR_30_SECONDS
