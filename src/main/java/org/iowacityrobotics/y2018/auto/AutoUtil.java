@@ -16,7 +16,8 @@ public class AutoUtil {
     public static void driveWithTimeout(Robot bot, double inches, double speed, long timeout) {
         Data.pushState();
 
-        Vector4 vec = new Vector4(0, -speed, 0, 0);
+        double realSpeed = -Math.abs(speed) * Math.signum(inches);
+        Vector4 vec = new Vector4(0, realSpeed, 0, 0);
         double initialDist = bot.srcLidarF.get();
         double deltaDist = Math.abs(inches);
         double errMargin = inches / 5000D;
@@ -30,7 +31,7 @@ public class AutoUtil {
 
         bot.snkDrive.bind(Data.source(() -> vec)
                 .inter(srcDelta, Data.inter(
-                        (out, delta) -> out.y(-speed * (delta * deltaFactor + oneMinusDownscale))))
+                        (out, delta) -> out.y(realSpeed * (delta * deltaFactor + oneMinusDownscale))))
                 .inter(srcAngularErr, Data.inter(
                         (out, err) -> out.z(Math.abs(err) <= COR_TURN_THRESH ? 0D : (Math.signum(err) * COR_TURN_MAGN)))));
         bot.snkAutoProfile.bind(srcDelta);

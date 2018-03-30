@@ -12,7 +12,7 @@ public class RoutineSwitch implements IAutoRoutine {
         AutoUtil.driveWithTimeout(bot, 19.95D, 0.75D, 500L); // drive forwards to switch
         AutoUtil.skillshot(bot, false); // release cube
         AutoUtil.driveTimed(bot, -0.75D, 325L); // back off so cube holder doesn't get caught
-        if (two) {
+        if (two && false) {
             AutoUtil.strafeBlind(bot, 1000L, mult * -1D);
             bot.liftController.setBlocking(0D, bot);
             // TODO finish me
