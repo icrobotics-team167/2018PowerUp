@@ -57,6 +57,8 @@ public class Robot implements IRobotProgram {
     // LIDAR
     public Source<Double> srcLidarF;
     public Sink<Double> snkLidarF;
+    public Source<Double> srcLidarL;
+    public Sink<Double> snkLidarL;
 
     // Auto feedback
     public Sink<Double> snkAutoProfile;
@@ -134,6 +136,8 @@ public class Robot implements IRobotProgram {
         // LIDAR
         srcLidarF = SourceSystems.SENSOR.lidarLite(0, 39092.0732D);
         snkLidarF = SinkSystems.DASH.number("Front LIDAR");
+        srcLidarL = SourceSystems.SENSOR.lidarLite(1, 39092.0732D);
+        snkLidarL = SinkSystems.DASH.number("Side LIDAR");
 
         // Auto feedback
         snkAutoProfile = SinkSystems.DASH.number("Motion profile");
@@ -188,6 +192,13 @@ public class Robot implements IRobotProgram {
                         routine = new RoutineSwitch();
                     } else {
                         routine = new RoutineAutoLine();
+                    }
+                    break;
+                case SWITCH_VIA_STRAFE_IF_ON_STARTING_POS:
+                    if (switchSame) {
+                        routine = new RoutineSwitchStrafe();
+                    } else {
+                        routine = new RoutineAutoLineStrafe();
                     }
                     break;
                 case FROM_CENTER_DO_SWITCH:
@@ -285,6 +296,7 @@ public class Robot implements IRobotProgram {
 
     private enum AutoGoal {
         SWITCH_IF_ON_STARTING_POS,
+        SWITCH_VIA_STRAFE_IF_ON_STARTING_POS,
         FROM_CENTER_DO_SWITCH,
         DRIVE_ACROSS_AUTO_LINE,
         DO_NOTHING_FOR_30_SECONDS

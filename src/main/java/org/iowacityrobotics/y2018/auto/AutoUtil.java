@@ -74,6 +74,30 @@ public class AutoUtil {
         Data.popState();
     }
 
+    public static void strafeFeedback(Robot bot, double inches, double speed) {
+        Data.pushState();
+
+        double realSpeed = Math.abs(speed) * Math.signum(inches);
+        Vector4 vec = new Vector4(realSpeed, 0, 0, 0);
+        double initialDist = bot.srcLidarL.get();
+        double deltaDist = Math.abs(inches);
+        double errMargin = inches / 5000D;
+        Source<Double> srcDelta = bot.srcLidarL.map(Data.mapper(v -> 1D - Math.abs(v - initialDist) / deltaDist));
+
+        bot.ahrs.reset();
+        double initialAngle = bot.ahrs.getAngle();
+        Source<Double> srcAngularErr = Data.source(() -> bot.ahrs.getAngle() - initialAngle);
+
+        bot.snkDrive.bind(Data.source(() -> vec)
+                .inter(srcAngularErr, Data.inter(
+                        (out, err) -> out.z(Math.abs(err) <= COR_TURN_THRESH ? 0D : (Math.signum(err) * COR_TURN_MAGN)))));
+        bot.snkAutoProfile.bind(srcDelta);
+        bot.srcLidarL.get();
+        Flow.waitUntil(() -> srcDelta.get() <= errMargin);
+
+        Data.popState();
+    }
+
     public static void turn(Robot bot, double degrees, double speed) {
         Data.pushState();
 
