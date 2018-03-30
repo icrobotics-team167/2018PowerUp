@@ -22,7 +22,7 @@ public class RoutineCenter implements IAutoRoutine {
         bot.liftController.set(0D);
         if (two) {
             // fall back and turn towards cube pile
-            AutoUtil.drive(bot, -48.685D, 1D);
+            AutoUtil.drive(bot, -41.685D, 1D);
             AutoUtil.turn(bot, 45D * mult, 0.9D);
 
             // slowly advance towards cube pile while running intake
@@ -37,7 +37,7 @@ public class RoutineCenter implements IAutoRoutine {
 
             // approach switch and drop cube
             bot.liftController.set(0.5D);
-            AutoUtil.driveWithTimeout(bot, 70D, 0.9D, 1538L);
+            AutoUtil.driveWithTimeout(bot, 48D, 0.9D, 1055L);
             AutoUtil.skillshot(bot, true);
         }
         AutoUtil.driveWithTimeout(bot, -25D, 1D, 750L); // back off so cube holder doesn't get caught
