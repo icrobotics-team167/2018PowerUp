@@ -70,13 +70,16 @@ public class Robot implements IRobotProgram {
         snkRampReleaseA = SinkSystems.MOTOR.servo(5, RampState.AUTO.a);
         snkRampReleaseB = SinkSystems.MOTOR.servo(6, RampState.AUTO.b);
 
-        Source<Boolean> rampMod = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.X);
         srcRampWinchA = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.START)
                 .map(MapperSystems.CONTROL.buttonValue(0D, 1D))
-                .inter(rampMod, Data.inter((d, b) -> b ? -d : d));
+                .inter(SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.ZR)
+                                .map(MapperSystems.CONTROL.buttonValue(0D, -1D)),
+                        Funcs.sumD());
         srcRampWinchB = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.SELECT)
                 .map(MapperSystems.CONTROL.buttonValue(0D, 1D))
-                .inter(rampMod, Data.inter((d, b) -> b ? -d : d));
+                .inter(SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.ZL)
+                                .map(MapperSystems.CONTROL.buttonValue(0D, -1D)),
+                        Funcs.sumD());
         snkRampWinchA = SinkSystems.MOTOR.victorSp(0);
         snkRampWinchB = SinkSystems.MOTOR.victorSp(1);
 
@@ -96,8 +99,7 @@ public class Robot implements IRobotProgram {
 //                Data.inter((v, feedback) -> (feedback >= 0.81D || feedback <= 0.34D)
 //                        ? 0.5D * v : v));
         snkLift = SinkSystems.MOTOR.talonSrx(5).join(
-                SinkSystems.MOTOR.talonSrx(6)
-                        .map(Funcs.invertD()));
+                SinkSystems.MOTOR.talonSrx(6));
         /// END real lift
 
         /// BEGIN fake lift
@@ -124,8 +126,7 @@ public class Robot implements IRobotProgram {
 
         // Drive
         MotorTuple4 motors = MotorTuple4.ofTalons(2, 3, 1, 4);
-        snkDrive = SinkSystems.DRIVE.mecanum(motors)
-                .map(Data.mapper(v -> v.y(-v.y())));
+        snkDrive = SinkSystems.DRIVE.mecanum(motors);
 
         // Intake
         srcIntake = SubsystemIntake.get();

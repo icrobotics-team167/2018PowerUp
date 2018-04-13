@@ -4,7 +4,6 @@ import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.subsystem.MapperSystems;
 import org.iowacityrobotics.roboed.subsystem.SourceSystems;
-import org.iowacityrobotics.roboed.subsystem.StateMachines;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.y2018.util.Consts;
 import org.iowacityrobotics.y2018.util.Controls;
@@ -35,14 +34,15 @@ public enum PrimaryDriveScheme {
                 .inter(srcReverse, Data.inter((v, r) -> r ? v.multiply2D(-1D) : v));
     }),
     Y_DRIVE(() -> {
-        Source<SpeedLevel> srcSpeed = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.A)
-                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.B),
-                        Data.inter((a, b) -> a ? SpeedLevel.FAST : b ? SpeedLevel.FASTER : SpeedLevel.NIL))
-                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.Y),
-                        Data.inter((a, b) -> a.invalid && b ? SpeedLevel.FASTEST : a))
-                .map(StateMachines.stateLatch(SpeedLevel.NIL, SpeedLevel.FASTER));
+//        Source<SpeedLevel> srcSpeed = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.A)
+//                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.B),
+//                        Data.inter((a, b) -> a ? SpeedLevel.FAST : b ? SpeedLevel.FASTER : SpeedLevel.NIL))
+//                .inter(SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.Y),
+//                        Data.inter((a, b) -> a.invalid && b ? SpeedLevel.FASTEST : a))
+//                .map(StateMachines.stateLatch(SpeedLevel.NIL, SpeedLevel.FASTER));
+        Source<SpeedLevel> srcSpeed = Data.source(() -> SpeedLevel.FASTEST);
         Source<Double> srcSpeedAugment = SourceSystems.CONTROL.axis(Consts.CTRL_PRIMARY, Controls.R_AXIS);
-        Source<Boolean> srcReverse = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.X)
+        Source<Boolean> srcReverse = SourceSystems.CONTROL.button(Consts.CTRL_PRIMARY, Controls.A)
                 .map(MapperSystems.CONTROL.toggle());
         return SourceSystems.CONTROL.dualJoy(Consts.CTRL_PRIMARY)
                 .map(MapperSystems.CONTROL.deadZone2V2(Consts.JOY_DZ))

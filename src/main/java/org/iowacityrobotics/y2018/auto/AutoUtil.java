@@ -3,6 +3,7 @@ package org.iowacityrobotics.y2018.auto;
 import org.iowacityrobotics.roboed.data.Data;
 import org.iowacityrobotics.roboed.data.source.Source;
 import org.iowacityrobotics.roboed.robot.Flow;
+import org.iowacityrobotics.roboed.util.math.Maths;
 import org.iowacityrobotics.roboed.util.math.Vector4;
 import org.iowacityrobotics.y2018.Robot;
 
@@ -54,6 +55,35 @@ public class AutoUtil {
         Vector4 vec = new Vector4(0, -speed, 0, 0);
         bot.snkDrive.bind(Data.source(() -> vec));
         Flow.waitFor(time);
+
+        Data.popState();
+    }
+
+    public static void driveTimedSpline(Robot bot, double inches, double speed, long timeout) {
+        Data.pushState();
+
+        double realSpeed = -Math.abs(speed) * Math.signum(inches);
+        Vector4 vec = new Vector4(0, realSpeed, 0, 0);
+        double initialDist = bot.srcLidarF.get();
+        double deltaDist = Math.abs(inches);
+        double oneMinusDownscale = MIN_MOTOR_MAGN / Math.abs(speed);
+        double deltaFactor = (1D - oneMinusDownscale) / deltaDist;
+//        Source<Double> srcDelta = bot.srcLidarF.map(Data.mapper(v -> 1D - Math.abs(v - initialDist) / deltaDist));
+        Source<Double> srcDelta = bot.srcLidarF.map(
+                Data.mapper(v -> Maths.clamp(1D - (v - initialDist) / inches, 0D, 1D)));
+
+        bot.ahrs.reset();
+        double initialAngle = bot.ahrs.getAngle();
+        Source<Double> srcAngularErr = Data.source(() -> bot.ahrs.getAngle() - initialAngle);
+
+        bot.snkDrive.bind(Data.source(() -> vec)
+                .inter(srcDelta, Data.inter(
+                        (out, delta) -> out.y(realSpeed * (delta * deltaFactor + oneMinusDownscale))))
+                .inter(srcAngularErr, Data.inter(
+                        (out, err) -> out.z(Math.abs(err) <= COR_TURN_THRESH ? 0D : (Math.signum(err) * COR_TURN_MAGN)))));
+        bot.snkAutoProfile.bind(srcDelta);
+        bot.srcLidarF.get();
+        Flow.waitFor(timeout);
 
         Data.popState();
     }
@@ -113,7 +143,6 @@ public class AutoUtil {
                 .inter(srcDelta, Data.inter(
                         (out, delta) -> out.z(absSpeed * (delta * deltaFactor + oneMinusDownscale)))));
         bot.snkAutoProfile.bind(srcDelta);
-        bot.snkIntake.bind(Data.source(() -> -0.675D));
         Flow.waitUntil(() -> srcDelta.get() <= 0.025D);
 
         Data.popState();

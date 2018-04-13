@@ -2,9 +2,9 @@ package org.iowacityrobotics.y2018.subsystem;
 
 public enum RampState {
 
-    AUTO(0.05D, 0.135D),
-    UP(0.015D, 0.1D),
-    DOWN(0.2D, 0.285D);
+    AUTO(0.0175D, 0.0525D),
+    UP(0.015D, 0.05D),
+    DOWN(0.26D, 0.27D);
 
     public final double a, b;
 
