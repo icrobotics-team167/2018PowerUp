@@ -160,13 +160,13 @@ public class Robot implements IRobotProgram {
         SmartDashboard.putData("Do two cubes?", twoCtrl);
 
         // Camera
-        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
+//        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
             snkLift.bind(srcLift);
 //            snkDrive.bind(primaryDriveCtrl.getSelected().source);
-            snkDrive.bind(PrimaryDriveScheme.Y_DRIVE.source);
+            snkDrive.bind(PrimaryDriveScheme.Y_DRIVE.source.apply(this));
             snkRampReleaseA.bind(srcRampState.map(Data.mapper(s -> s.a)));
             snkRampReleaseB.bind(srcRampState.map(Data.mapper(s -> s.b)));
             snkRampWinchA.bind(srcRampWinchA);

@@ -11,8 +11,8 @@ public class AutoUtil {
 
     private static final double MIN_MOTOR_MAGN = 0.35D;
     private static final double MIN_TURN_MAGN = 0.255D;
-    private static final double COR_TURN_MAGN = -0.08D; // negative magnitude of correctional turning
-    private static final double COR_TURN_THRESH = 1.75D; // angular error, in degrees, to start correction at
+    public static final double COR_TURN_MAGN = -0.08D; // negative magnitude of correctional turning
+    public static final double COR_TURN_THRESH = 1.75D; // angular error, in degrees, to start correction at
 
     public static void driveWithTimeout(Robot bot, double inches, double speed, long timeout) {
         Data.pushState();
