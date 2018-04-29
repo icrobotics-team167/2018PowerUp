@@ -6,7 +6,7 @@ public class RoutineAutoLineStrafe implements IAutoRoutine {
 
     @Override
     public void doTheAutoThing(Robot bot, int mult, boolean two) {
-        AutoUtil.strafeFeedback(bot, -100D * mult, 1D);
+        AutoUtil.strafeBlind(bot, RoutineSwitchStrafe.ASDF, -mult); // strafe until level with switch
     }
 
 }

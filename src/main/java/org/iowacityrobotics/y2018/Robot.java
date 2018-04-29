@@ -43,6 +43,7 @@ public class Robot implements IRobotProgram {
     // Lift
     public Source<Double> srcLift;
     public Source<Double> srcLiftEnc;
+    public Source<Boolean> liftLimit;
     public Sink<Double> snkLift;
     public Sink<Double> snkLiftEnc;
     public LiftController liftController;
@@ -87,9 +88,9 @@ public class Robot implements IRobotProgram {
         /// BEGIN real lift
         WPI_TalonSRX liftTalon = Devices.talonSrx(5);
         SensorCollection sensors = liftTalon.getSensorCollection();
-        Source<Boolean> liftLimit = Data.source(Devices.dioInput(2)::get);
+        liftLimit = Data.source(Devices.dioInput(2)::get);
         double[] encOffset = new double[] {sensors.getQuadraturePosition()};
-        srcLift = SubsystemLift.get();
+        srcLift = SubsystemLift.get(liftLimit);
         srcLiftEnc = liftLimit.map(Data.mapper(lim -> {
             double pos = sensors.getQuadraturePosition();
             if (!lim) encOffset[0] = pos;
@@ -160,7 +161,7 @@ public class Robot implements IRobotProgram {
         SmartDashboard.putData("Do two cubes?", twoCtrl);
 
         // Camera
-//        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
+        VisionServer.putImageSource("usb cam", VisionServer.getCamera(CameraType.USB, 0));
 
         // Runmodes
         RobotMode.TELEOP.setOperation(() -> {
@@ -206,6 +207,10 @@ public class Robot implements IRobotProgram {
                     startPos = field.switchSide;
                     routine = new RoutineCenter();
                     break;
+//                case FROM_CENTER_DO_SWITCH_AXIS_ALIGNED:
+//                    startPos = field.switchSide;
+//                    routine = new RoutineCenterTwoSquare();
+//                    break;
                 case DRIVE_ACROSS_AUTO_LINE:
                     routine = new RoutineAutoLine();
                     break;
@@ -217,11 +222,11 @@ public class Robot implements IRobotProgram {
             }
             snkLiftEnc.bind(srcLiftEnc);
             snkLidarF.bind(srcLidarF);
-            liftController.setBlocking(0D, this);
             Logs.info("Running strategy {} on side {}",
                     routine.getClass().getSimpleName(),
                     startPos.name());
-            routine.doTheAutoThing(this, startPos.mult, twoCtrl.getSelected());
+//            routine.doTheAutoThing(this, startPos.mult, twoCtrl.getSelected());
+            routine.doTheAutoThing(this, startPos.mult, false);
         });
 
         RobotMode.TEST.setOperation(() -> {
@@ -299,6 +304,7 @@ public class Robot implements IRobotProgram {
         SWITCH_IF_ON_STARTING_POS,
         SWITCH_VIA_STRAFE_IF_ON_STARTING_POS,
         FROM_CENTER_DO_SWITCH,
+//        FROM_CENTER_DO_SWITCH_AXIS_ALIGNED,
         DRIVE_ACROSS_AUTO_LINE,
         DO_NOTHING_FOR_30_SECONDS
     }

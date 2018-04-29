@@ -16,6 +16,8 @@ public class SubsystemIntake {
 
     private static final Source<Double> srcOut = SourceSystems.CONTROL.axis(Consts.CTRL_SECONDARY, Controls.L_AXIS);
 
+    private static final Source<Double> srcOutPrimCtrl = SourceSystems.CONTROL.axis(Consts.CTRL_PRIMARY, Controls.R_AXIS);
+
     private static final Source<Double> srcInSlow = SourceSystems.CONTROL.button(Consts.CTRL_SECONDARY, Controls.A)
             .map(MapperSystems.CONTROL.buttonValue(0D, -0.575D));
 
@@ -26,6 +28,7 @@ public class SubsystemIntake {
             .inter(srcOut, Funcs.sumD())
             .inter(srcInSlow, Funcs.sumD())
             .inter(srcIn, Funcs.sumD())
+            .inter(srcOutPrimCtrl, Funcs.sumD())
             .map(Data.mapper(v -> Maths.clamp(v, -1D, 1D)));
 
     public static Source<Double> get() {

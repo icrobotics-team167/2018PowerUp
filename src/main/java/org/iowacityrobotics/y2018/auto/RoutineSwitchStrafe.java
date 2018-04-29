@@ -5,11 +5,18 @@ import org.iowacityrobotics.y2018.Robot;
 
 public class RoutineSwitchStrafe implements IAutoRoutine {
 
+//    public static long ASDF = 4213L;
+    public static long ASDF = 3200L;
+
     @Override
     public void doTheAutoThing(Robot bot, int mult, boolean two) {
-        bot.liftController.set(0.5D); // direct the lift controller to raise the cube
-        AutoUtil.strafeFeedback(bot, -140.75D * mult, 1D); // strafe until level with switch
-        AutoUtil.driveWithTimeout(bot, 19.95D, 0.75D, 500L); // drive forwards to switch
+        long a = ASDF / 2;
+        AutoUtil.strafeBlind(bot, a, -mult); // strafe halfway
+        Data.pushState();
+        bot.snkLift.bind(Data.source(() -> -0.54D));
+        AutoUtil.strafeBlind(bot, a, -mult); // strafe until level with switch
+        AutoUtil.driveTimed(bot, 0.5D, 1000L); // drive forwards to switch
+        Data.popState();
         AutoUtil.skillshot(bot, false); // release cube
         if (two) {
             AutoUtil.strafeFeedback(bot, -60.94D * mult, 1D); // strafe towards cube row
